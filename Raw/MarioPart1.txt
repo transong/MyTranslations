@@ -1,0 +1,1003 @@
+[caption id="attachment_15889" align="alignright" width="203" caption="Learn how to make a game like Super Mario!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/MarioGame.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/MarioGame.png" alt="Learn how to make a game like Super Mario!" title="Learn how to make a game like Super Mario!" width="203" height="182" class="size-full wp-image-15889" /></a>[/caption]
+
+<i>This is a blog post by iOS Tutorial Team member <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>, an indie game developer who runs the <a href="http://indieambitions.com/">Indie Ambitions</a> blog.  Check out his latest app - <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+<i>这是一篇IOS教程组的成员 <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>发布的教程, 他是一位独立游戏开发者，经营着<a href="http://indieambitions.com/">Indie Ambitions</a> 博客。去看看他最新的app吧<a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+
+For many of us, Super Mario Brothers was the first game that made us drop our jaws in gaming excitement.
+对于我们中的很多人来说，超级玛丽往往是带我们进入激情无限的游戏世界的第一款游戏。
+
+Although video games started with Atari in many ways, the intuitive and visceral controls of Super Mario Brothers and fun level design were such a dramatic improvement that it felt like something completely new - and we couldn't put it down for hours!
+虽然电视游戏始于Atari（雅达利），之后扩展到很多平台。但是随着超级玛丽的来临，它直观简单的操作、丰富有趣的关卡设计等都是极为激动人心的进步，以致于让人们感觉它是全新的，我们甚至几个小时持续不断的玩儿它！
+
+In this tutorial, you're going to recapture the magic and create your own platform jumper game - but since the hero will be a Koala instead of a plumber, we'll call it "Super Koalio Brothers!"  ;]
+在本篇教学中，我们将重拾超级玛丽的魔力并制作一款你自己的平台跳跃游戏，由于我们使用了一只考拉代替了水管工，所以我们称其为“超级考拉兄弟”！  ;]
+
+Also to keep things simple instead of adding enemies we'll just have a simple challenge — avoid the spiky floors.  That way you’ll be able to focus on learning how to implement the heart of a platformer game: the physics engine.
+另外，为了保持简单性，我们将不会加入敌人，这样不用在地面上来回躲避，过关会比较容易，同时也能专注在平台游戏的核心部分-物理引擎。
+
+This tutorial assumes you are already familiar with Cocos2D development.  If you are new to Cocos2D, check out some of the <a href="/?page_id=2519#cocos2d">other tutorials</a> on this site first.
+本篇教学假设你已经熟悉Cocos2D的开发流程。如果你刚接触Cocos2D，那么请先跟随网站上的<a href="/?page_id=2519#cocos2d">其他教程</a>。
+
+Do you have the necessary koala-fications?   Then let’s get hopping!<!--more--><h2>Getting Started</h2>
+你确定你合格了吗？（原文中是koala-fications，音似qualifications，开玩笑的目的）那么我们就开始吧！<!--more--><h2>准备工作 Getting Started</h2>
+
+To get started, go ahead and download the <a href="http://www.raywenderlich.com/downloads/SuperKoalioStarter3.zip">starter project</a> for this tutorial.
+在开始之前，请先下载本篇教学的<a href="http://www.raywenderlich.com/downloads/SuperKoalioStarter3.zip">初始工程</a>。
+
+Once you've downloaded the file, unzip it, open the project in Xcode, and build and run.  You should see the following appear on the screen:
+下载完后，解压之，在Xcode中打开，编译并运行。你将会在屏幕上看到以下内容：
+
+[caption id="attachment_15890" align="alignnone" width="480" caption="Starter Project for Super Mario tutorial"]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/StarterProject.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/StarterProject.png" alt="Starter Project for Super Mario tutorial" title="Starter Project for Super Mario tutorial" width="480" height="320" class="size-full wp-image-15890" /></a>[/caption]
+
+That's right - just a boring empty screen!  :]  You'll be filling that out in the rest of the tutorial.
+就是它，一个没意思的空屏幕！ :]你将会在之后的教学中逐步填充它。
+
+This starter project is pretty bare bones - the main point of giving it to you is so that you'd have all of the images/sounds you'll need for the project pre-integrated.  Take a look through the project and you'll see it contains the following:
+初始工程仅仅是一个框架，主要是将之后所需的图片/声音资源集成到了工程里。大致浏览一下，里边都包含了以下内容：
+
+<ul>
+<li><em>Game Art.</em>  Includes the Koalio free game art pack from Ray's wife <a href="http://www.vickiwenderlich.com">Vicki</a>.</li>
+<li><em>游戏图片</em>  包含了Ray的老婆<a href="http://www.vickiwenderlich.com">Vicki</a>提供的一系列免费游戏图片。</li>
+<li><em>Level Map.</em>  I put together a level map for you, based on the SMB level 1-1 you all know and love!</li>
+<li><em>关卡地图</em>  我做了一张关卡地图，你肯定知道它，因为它是模仿的超级玛丽的第一关。</li>
+<li><em>Gratuitous Music and Sound Effects.</em>  This is a raywenderlich.com tutorial after all!  :]</li>
+<li><em>免费的音乐和音效</em>  这怎么说也是一篇raywenderlich.com的教程啊，对吧  :]</li>
+<li><em>A CCLayer subclass</em>.  A class called GameLevelLayer, that will do a lot of the physics engine work.  Right now it's as empty as a drum.  (It's just waiting for you to come!)</li>
+<li><em>一个CClayer的子类</em>.  一个叫做GameLevelLayer的类，它将会为你处理大部分的物理引擎的工作。目前它还空空如也，等待着你去填充它！</li>
+<li><em>A CCSprite subclass.</em>  A class called Player, which will contain the Koala's logic.  Right now it's just waiting for you to make it fly away!  (Sorry for all the jokes Norah!)</li>
+<li><em>一个CCSprite的子类</em>  一个叫做Player的类，它将会包含考拉的逻辑。目前它等待着你让它飞起来呢！（不好意思打了这么多比喻！）</li>
+</ul>
+
+Once you've had a chance to look through the project and fully understand what's there, keep reading and we'll discuss some philosophy about physics engines!
+当你浏览了项目并清楚的知道里边都有了些什么之后，就可以继续阅读了，我们将会讨论一些有关物理引擎的哲学。
+
+<h2>物理引擎的本质 The Tao of Physics Engines</h2>
+
+A platform game revolves around its physics engine, and in this tutorial you'll be creating your own physics engine from scratch. 
+一个平台游戏室基于它的物理引擎的，本篇教学中你将会从头创建你自己的物理引擎。
+
+There are two main reasons why you'll be rolling your own, instead of using pre-existing engines such as Box2D or Chipmunk:
+我们不使用现有的物理引擎，比如Box2D或Chipmunk，有两个主要原因决定你需要自己实现它。
+
+<ol>
+<li><em>Fine tuning.</em>  To get the right feel for a platformer game, you need to be able to fine-tune the feel and response of the engine.  In general, platformers created using pre-existing engines don't feel like the Mario/Sonic/Contra/Russian Attack games that you’re used to.</li>
+<li><em>更好的适配性</em>  为了得到更好的平台游戏的感觉，你需要合理的调整引擎的感觉和反应。通常来说，使用现有的物理引擎制作的平台游戏都不会有Mario（马里奥）/Sonic（刺猬索尼克）/Contra/Russian Attack这些游戏中的那种感觉。</li>
+<li><em>Simplicity.</em>  Box2D and Chipmunk have a lot of capabilities your game engine doesn't really need, so your homebrew engine will end up being less resource-intensive overall.</li>
+<li><em>简单性</em>  Box2D和Chipmunk有很多的功能都是你的游戏所不需要的，所以你自己的引擎将不会包含这些功能所需要的资源。</li>
+</ol>
+
+A physics engine does two important things: 
+一个物理引擎主要做两件事：
+
+[caption id="attachment_16493" align="alignright" width="250" caption="Forces acting on Koalio."]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/1_forces_on_kuwalio.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/1_forces_on_kuwalio.jpg" alt="Forces acting on Koalio." title="Forces acting on Koalio." width="250" height="250" class="size-full wp-image-16493" /></a>[/caption]
+
+<ol>
+<li><em>Simulate movement.</em> The first job of a physics engine is to simulate resistive forces like gravity, and applied forces like running, jumping, and friction.</li>
+<li><em>模拟运动</em> 物理引擎首要的工作就是模拟各种力，比如重力和跑跳的力，还有摩擦阻力</li>
+<li><em>Detect collisions.</em> The second job of a physics engine is to finds and resolve collisions between the player and other objects in the level. </li>
+<li><em>碰撞检测</em> 物理引擎的第二个工作是找到并解决关卡里边的所有物体之间的碰撞。 </li>
+</ol>
+
+For example, in your Koalio game you'll apply an upward force to the Koala to make him jump. Over time, the force of gravity will act against that initial jumping force, which will give you that nice classic parabolic jump pattern.
+举个例子，在你的考拉游戏中你将会对其施加一个向上的力，用以是它跳跃。随着时间变化，重力将会将它落下，于是就形成了一个经典的抛物线跳跃。
+
+And as for collision detection, you'll use that to keep the Koala from falling through the ground, and to detect when our poor Koala collides with some spikes (ouch!)
+至于碰撞检测，你将会使用它来保证你的考拉一直在地面之上，并且检测它和地面上的障碍的碰撞。
+
+Let's see how this will work in practice.
+让我们看看这些是如何在实际中起作用的。
+
+<h2>物理工程学 Physics Engineering</h2>
+
+In the physics engine you'll create, the Koala will have its own movement-describing variables: current velocity (speed), acceleration, and position, among others. Using these variables, every movement you apply to the Koala will follow this algorithm:
+在接下来要创建的物理引擎中，用来描述考拉运动的变量有：当前速率（速度），加速度，和位置。使用这些变量，考拉每一步的运动都将遵循以下算法：
+
+<ol>
+<li>Is the jump or move action selected?</li>
+<li>跳跃或者移动是否是选中的？</li>
+<li>If so, apply a jump or movement force to the Koala.</li>
+<li>如果是，那么对考拉施加一个跳跃或者移动的力。</li>
+<li>Also apply gravity to the Koala.</li>
+<li>同时始终对考拉施加重力。</li>
+<li>Compute the resulting velocity for the Koala.</li>
+<li>计算考拉最终的速率。</li>
+<li>Apply this resulting velocity to the Koala and update his position.</li>
+<li>使这个速率最终应用到考拉身上，改变其位置。</li>
+<li>Check for collision between the Koala and other objects.</li>
+<li>检测考拉和其他物体之间的碰撞。</li>
+<li>If there's a collision, resolve it either by moving the Koala back enough so that the collision is no longer occurring, or by causing damage to the poor Koala.</li>
+<li>如果有碰撞，检测碰撞是什么类型，如果是普通障碍，则移回考拉，如果是致命障碍，则让考拉受伤。</li>
+</ol>
+	
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/2_forces_fighting.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/2_forces_fighting.jpg" alt="Forces fighting over Koalio." title="Forces fighting over Koalio." width="250" height="250" class="alignright size-full wp-image-16494" /></a>
+
+You'll run these steps for every frame. In the game world, gravity is constantly pushing the Koala down and through the ground, but the collision resolution step will put him back on top of the ground in each frame. You can also use this feature to determine if the Koala is still touching the ground, and if not, disallow a jump action if the Koala is already in mid-jump or has just walked off a ledge.
+每一帧都会执行以上步骤。在本游戏中，重力的作用是持续向下推考拉，一直穿过地面，但是地面的碰撞处理会把它弹回到地面之上。你也可以通过此方法来检测考拉是否和地面有接触，如果没有，那么考拉则不能起跳，因为这时它正在跳跃中或者是刚刚从突出的平台上下来。
+
+Steps 1-5 will occur solely within the Koala's object. All the necessary information is contained there, and it makes sense to let the Koala update its own variables. 
+步骤1-5将完全的针对考拉对象。所有必要的信息都包含在这里边，并且让考拉自己来更新自己的变量。
+
+However, when you reach the sixth step — collision detection — you need to take all of the level features into consideration, such as walls, floors, enemies, and other hazards. The collision detection step will be performed in each frame by the GameLevelLayer – remember, that’s the CCLayer subclass that will do a lot of the physics engine work. 
+但是，当你到达第六步，也就是碰撞检测时，你需要考虑所有的关卡中的东西，比如墙，地面，敌人和其他危险的物体。碰撞检测每一帧都会在GameLevelLayer中被执行，记住，这个类将会承担很多物理引擎的工作。
+
+If you allowed the Koala's class to update his own position, he would move himself into a collision with a wall or ground block, and the GameLevelLayer would then move him back out, repeatedly — which would make him look like he was vibrating. (Had a little too much coffee, Koalio?) 
+如果你允许考拉的类更新它自己的坐标，那么当它移动到一个有碰撞的墙或者地面时，GameLevelLayer将会把他拉回，这样就会陷入循环，考拉看起来会来回颤抖。（考拉，你是咖啡喝的有点多吗？）
+
+So, you're not going to allow the Koala to update his own state. Instead, the Koala will have a new variable, desiredPosition, that he will update. The GameLevelLayer will check if this desiredPosition is valid by detecting and resolving any collisions, and then the GameLevelLayer will update the Koala's position.
+所以，你将不会让考拉更新自己的坐标，相反的，考拉会保存一个新的变量，desiredPosition，考拉实时更新它。GameLevelLayer将会通过碰撞检测来判断desiredPosition是否是合理的，之后GameLevelLayer会负责更新考拉的坐标。
+
+Got it?  Let's try it out and see what it looks like in code!
+明白了吗？让我们试一下并看看代码应该是什么样子的！
+
+<h2>加载TMXTiledMap Loading the TMXTiledMap</h2> 
+
+I’m going to assume you’re familiar with how tile maps work. If you aren't, you can learn more about them <a href="/?p=1163"> in this tutorial</a>.
+我会假设你已经熟悉如何使用tile map了。如果你不熟悉的话，请先跟随<a href="/?p=1163"> 此篇教学 </a>学习一些基础。
+
+Let's take a look at the level.  Start up your <a href="http://www.mapeditor.org/">Tiled map editor</a> (download it if you don't have it already) and open <em>level1.tmx</em> from your project directory.  You'll see the following:
+让我们看一下关卡里都一些什么。启动你的<a href="http://www.mapeditor.org/">Tiled地图编辑器</a>（如果你没安装请先下载），打开工程目录里的<em>level1.tmx</em>，你将会看到以下内容：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/LevelInTiled.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/LevelInTiled-700x280.png" alt="A platformer game level made with Tiled" title="A platformer game level made with Tiled" width="700" height="280" class="alignnone size-large wp-image-15891" /></a>
+
+
+If you look in the sidebar, you'll see that there are three different layers:
+在侧边栏中，你会看到有三个不同的层：
+
+<ul>
+<li><em>hazards</em>: This layer contains the things the Koala needs to avoid touching to stay alive (gulp).</li>
+<li><em>hazards</em>: 这个层包含了考拉需要躲避的东西。</li>
+<li><em>walls</em>: This layer contains tiles the Koala cannot move through, which mostly consist of floor tiles.</li>
+<li><em>walls</em>: 这个层包含了考拉不能穿越的东西，大部分是地面。</li>
+<li><em>background</em>: This layer contains things that are there for aesthetics only, such as clouds or hills.</li>
+<li><em>background</em>: 这个层仅仅是为了装饰，比如云彩和山。</li>
+</ul>
+
+Now time to code!  Open up <em>GameLevelLayer.m</em> and add the following after the #import but before the @implementation:
+现在就来编码！打开<em>GameLevelLayer.m</em>，在#import之后@implementation之前加入以下内容：
+
+<pre lang="objc">
+@interface GameLevelLayer() 
+{
+  CCTMXTiledMap *map;
+}
+
+@end
+</pre>
+
+This adds a private instance variable for the tile map into your class.  
+这一步在类中加入了一个tile map私有的变量。
+
+Next you'll load this map into your layer by loading it in the init section. Add the following code to <em>init</em>:
+接下来你需要在init部分加载此地图。在<em>init</em>方法中加入以下代码：
+
+<pre lang="objc">
+CCLayerColor *blueSky = [[CCLayerColor alloc] initWithColor:ccc4(100, 100, 250, 255)];
+[self addChild:blueSky];
+
+map = [[CCTMXTiledMap alloc] initWithTMXFile:@"level1.tmx"];
+[self addChild:map];
+</pre>
+
+First, you add a background color (a CCLayerColor) to the layer, which will be the blue sky. The next two lines of code simply load the tile map (a CCTMXTiledMap) and add it to the layer. 
+首先，添加一个有颜色的背景，在这里就是一个蓝天。另外两行代码作用是把tile map（一个 CCTMXTiledMap对象）加载到层中。
+
+Next, in <em>GameLevelLayer.m</em>, add the import for Player.h:
+然后，在<em>GameLevelLayer.m</em>中，导入Player.h：
+
+<pre lang="objc">
+#import "Player.h"
+</pre>
+
+Still in <em>GameLevelLayer.m</em>, add the following instance variable to the @interface section:
+同样在<em>GameLevelLayer.m</em>，加入以下成员变量到@interface部分中：
+
+<pre lang="objc">
+Player * player;
+</pre>
+
+Then add the Koala to the level with the following code in the init method:
+然后把考拉加入到关卡中，在init中加入添加以下代码：
+
+<pre lang="objc">
+player = [[Player alloc] initWithFile:@"koalio_stand.png"];
+player.position = ccp(100, 50);
+[map addChild:player z:15];
+</pre>
+
+This code loads the Koala sprite object, gives it a position, and adds it to the map object. 
+这些代码加载了代表考拉的sprite对象，为其附一个坐标，并且添加它到地图中。
+
+You may be wondering why you added the Koala to the map object instead of the layer.  Well, you want to control exactly which TMX layers are in front of and behind the Koala sprite, so the Koala needs to be a child of the map.  You want your hero Koalio in front, so you give him a Z-order of 15.  Also, this makes it so that if you scroll the tile map, the Koala still stays in the same relative position within the tile map.
+你可能不解为什么不把考拉对象直接添加到layer中呢。原因如下，考拉对象需要和TMX layers里的对象交互，所以考拉对象应该是map的一个子节点。考拉对象应该放在最上层，所以你设置它的Z-order为15.还有，当你滚动你的tile map时，考拉是会跟着tile map一起移动的。
+
+OK, let's check it out!  Build and run and you should see the following:
+OK，来试试看！编译并运行你将会看到如下内容：
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-player-and-tilemapb" rel="attachment wp-att-15251"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Player-and-Tilemapb-478x320.png" alt="" title="Player and Tilemap" width="478" height="320" class="aligncenter size-medium wp-image-15251" /></a>
+
+It looks like a game, but Koalio is defying gravity!  It's time to kiss him goodbye and bring him down - with a physics engine :]
+看起来像个游戏了，但是考拉并没有服从重力，是时候使用物理引擎让它回到地面上来了，记得跟它说声再见 :]
+
+<h2>重力对考拉的影响 The Gravity of Koalio's Situation</h2>
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/3_gravity_likeaboss.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/3_gravity_likeaboss.jpg" alt="The gravity force is always on!" title="The gravity force is always on!" width="250" height="250" class="alignright size-full wp-image-16495" /></a>
+
+To build a physics simulation, you could write a complex set of branching logic that takes the Koala's state into account and decides which forces to apply based on that state. But, this would quickly become very complicated — and it isn't really how physics works. In the real world, gravity is always pulling things towards the earth. So you'll add the constant force of gravity to the Koala in every frame. 
+为了完成物理模拟，你可以写一整套复杂的逻辑，根据考拉状态的不同，对其施加不同的力，但是这样做会很快变得复杂起来，而且这并不是真正的物理。在真实世界里，重力会把物体往地球的方向拉，所以你需要在每一帧都对考拉施加一个不变的重力。
+
+Other forces don't just switch on and off. In the real world, a force is applied to an object and the momentum continues to move the object through space until some other force acts on that object to change the momentum. 
+其他的力并不是简单的打开和关闭。在真实世界里，一个力作用到物体上产生冲量，冲量会持续的移动物体，直到有其他的力改变当前冲量。
+
+For example, a vertical force like a jump doesn't turn gravity off; it momentarily overcomes gravity, but gravity slows the ascent, and ultimately brings the object back to the ground. Similarly, a force that pushes an object is countered by friction, which gradually slows down the object until it stops. 
+举例来说，一个竖直方向的力比如跳跃并不会使重力失效，只是其产生的冲量克服了重力，重力逐渐的减慢上升的速度，并最终把物理带回到地面。类似的，一个移动的物体受到摩擦力的影响，最终会停下来。
+
+This is how you'll model your physics engine.  You won’t constantly check whether your Koala is on the ground and decide whether to apply gravity; gravity will always be applied in this world. 
+这就是创建物理引擎模型的方法。你并不持续不断地检测考拉是否在地面上并根据状态时不时的施加重力，重力是一直存在的。
+
+<h2>扮演上帝 Playing God</h2>
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/4_all_the_forces.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/4_all_the_forces.jpg" alt="I control all the forces!" title="I control all the forces!" width="250" height="250" class="alignright size-full wp-image-16496" /></a>
+
+The logic of your physics engine will mean that when a force is applied to an object, the object will continue to move until another force counteracts it. When Koalio walks off a ledge, he’ll continue to move down at an accelerating rate until he collides with something else. When you move Koalio, he won’t stop moving as soon as you stop applying force; friction will slow him down gradually until he stops. 
+物理引擎中力对于物体的作用是这样的，当一个力作用到一个物体上后，这个物体会持续不断地运动直到有另外的力抵消这个力。当考拉从突起的平台上走过时，他会以一个加速度落下，直到他碰到障碍为止，当你移动考拉时，如果你不持续的施加力，那个考拉最终会因为摩擦力的作用而停止下来。
+
+As you proceed with your platform game, you’ll see that this logic will make it easier to handle complex situations, such as an ice floor where the Koala doesn't stop on a dime, or a free-fall over a cliff. This model of cumulative forces will make for a fun, dynamic-feeling game. 
+随着你的平台游戏的逐渐完善，你会发现这个逻辑会让复杂的情况变得简单，比如在一个冰面上，考拉是不可能停在一个硬币上的，再比如贴着悬崖边上的下落其实是一个自由落体。这种力逐渐累加的模型会让游戏更有趣，更具动感。
+
+It will also make the implementation easier, because you won't have to constantly query the state of your objects – they will just follow the natural laws of your world and their behavior will emerge from the application of those laws! 
+这样做也会让实现起来容易些，因为你并不需要一直计算物体的状态 - 他们仅仅需要遵循你的世界中的自然法则即可，他们的行为会自动由程序处理。
+
+Sometimes, you do get to play God!  :]
+有些时候，你要扮演上帝！
+
+<h2>地面的规则：CGPoints和Forces The Law of the Land: CGPoints and Forces</h2>
+
+Let’s define a few terms: 
+首先定义一些术语：
+<ul>
+<li><em>Velocity</em> describes how fast an object is moving in a given direction.</li>
+<li><em>Velocity（速率）</em> 用来描述一个物体在一个特定方向上的移动的有多快。</li>
+<li><em>Acceleration（加速度）</em> is the rate of change in velocity – how an object’s speed and direction change over time.</li>
+<li><em>Acceleration（加速度）</em> 是速率变化的速率，用来描述物体的速度随着时间的变化快慢。</li>
+<li>A <em>force</em> is an influence that causes a change in speed or direction.</li>
+<li>A <em>force（力）</em> 是导致速率和方向变化的原因。</li>
+</ul>
+
+In a physics simulation, a force applied to an object will accelerate that object to a certain velocity, and that object will continue moving at that velocity, until acted upon by another force. Velocity is a value that persists from one frame to the next and only changes by the application of new forces.
+在物理模拟中，当一个力被施加到一个物体上，会瞬间给物体一个特定的速率，之后此物体会以这个特定的速率移动下去，直到其他的力施加其上。如果没有外力作用，速率会在每一帧保持稳定。
+
+You're going to be representing three things with CGPoint structures: velocity (speed), force/acceleration (change in speed), and position. There are two reasons for using CGPoint structures:
+你将会使用CGPoint结构来表示三个概念：速度，力/加速度（速度的变化），和位置。有两个原因决定了使用CGPoint结构：
+
+<ol>
+<li><em>They're 2D.</em>  Velocity, force/acceleration, and position are all 2D values for a 2D game.  “What?” you might say. “Gravity only acts in one dimension!” However, you could easily imagine a game with changing gravity where you'd need the second dimension.  Think Super Mario Galaxy!</li>
+<li><em>它们都是2D的概念</em>  速率，力/加速度，和位置都是2D游戏中的2D概念。“什么？”你也许会问。“重力不是只作用在一个维度吗”，你很轻易的就能想出一个需要重力第二维度的游戏。想象一下马里奥银河的场景！</li>
+<li><em>It's convenient.</em>  By using CGPoints, you can rely on the various built-in functions within Cocos2D. You'll be making heavy use of functions such as ccpAdd (add two points), ccpSub (subtract them), and ccpMult (multiply a point by a float to scale it up or down). This will make your code much easier to write — and debug!</li>
+</ol>
+<li><em>这很方便</em>  通过使用CGPoints，你便可以使用Cocos2D系统自带的处理CGPoint的函数。你将会大量的用到ccpAdd（两点相加），ccpSub（两点相减）和ccpMult（点乘浮点数）。这些都会让你编码和调试更轻松。</li>
+</ol>
+
+Your Koala object will have a velocity variable that will be acted upon in each frame by a number of forces, including gravity, forward/jumping forces supplied by the user, and friction, which will slow and stop the Koala. 
+考拉对象在每一帧都会有一个特定的速度变量，它是由一系列力共同决定的，这些力包含重力，向前/跳跃的力和摩擦力，其中摩擦力会逐渐减慢考拉速度并最终使其停止下来。
+
+In each frame, you'll add all these forces together, and the accumulated force that results will be added to the previous velocity of the Koala object. That will give you the current velocity. The current velocity will be scaled down to match the fractional time amount between each frame, and finally, that scaled value will be used to move the Koala's position for that frame.
+在每一帧，你都需要将这些力累加，累加后的力会影响前一帧考拉的速度，并计算得到当前的速度。然后，当前速度需要乘上当前帧的时间系数来适当缩减，这个系数一般来说是个很小的数，最终这个速度会移动考拉。
+
+<div class="note"><p><em>Note:</em> If any of this still sounds confusing, Daniel Shiffman wrote an excellent <a href='http://www.processing.org/learning/pvector/'>tutorial</a> on vectors that explains the accumulation of forces structure that you'll be using. The tutorial is designed for Processing, a language for creative designers similar to Java, but the concepts are applicable in any programming language. It's a great and accessible read and I highly recommend you check it out!</p></div>
+<div class="note"><p><em>注意：</em> 如果以上这些让你感到迷惑的话，那么你可以参考Dainel Shiffman写的一篇很棒的 <a href='http://www.processing.org/learning/pvector/'>教学</a> ，它基于向量解释了力是如何累加的。这篇教学是为Processing语言设计的，虽然Processing是一种类似Java的语言，但是其中的概念是一致的。我强烈推荐你浏览一遍它。</p></div>
+
+Let's start with gravity. Set up the run loop, where you'll be applying these forces. In the <em>GameLevelLayer.m</em>, add the following to <em>init</em> before the close of the if block:
+让我们从重力开始。首先创建一个可以用来施加力的循环。在<em>GameLevelLayer.m</em>中，向<em>init</em>函数if块儿中的末尾添加以下内容：
+
+<pre lang="objc">
+[self schedule:@selector(update:)];
+</pre>
+
+Then add the method to the class:
+然后在类中加入以下方法：
+
+<pre lang="objc">
+-(void)update:(ccTime)dt 
+{
+    [player update:dt];
+}
+</pre>
+
+Next open up <em>Player.h</em> and add modify it to look like the following:
+打开<em>Player.h</em>，作如下修改：
+
+<pre lang="objc">
+#import <Foundation/Foundation.h>
+#import "cocos2d.h"
+
+@interface Player : CCSprite 
+
+@property (nonatomic, assign) CGPoint velocity;
+
+-(void)update:(ccTime)dt;
+
+@end
+</pre>
+
+Next add the implementation to <em>Player.m</em>: 
+然后再<em>Player.m</em>中添加实现部分：
+
+<pre lang="objc">
+#import "Player.h"
+
+@implementation Player
+
+@synthesize velocity = _velocity;
+
+// 1
+-(id)initWithFile:(NSString *)filename 
+{
+    if (self = [super initWithFile:filename]) {
+        self.velocity = ccp(0.0, 0.0);
+    }
+    return self;
+}
+
+-(void)update:(ccTime)dt 
+{
+
+    // 2
+    CGPoint gravity = ccp(0.0, -450.0);
+    
+    // 3
+    CGPoint gravityStep = ccpMult(gravity, dt);
+
+    // 4
+    self.velocity = ccpAdd(self.velocity, gravityStep);
+    CGPoint stepVelocity = ccpMult(self.velocity, dt);
+    
+    // 5
+    self.position = ccpAdd(self.position, stepVelocity);
+}
+
+@end
+</pre>
+
+Let's go through the above code section by section.
+我们来一步一步的解释以上代码：
+
+<ol>
+<li>Here you created a new init method to initialize the velocity variable to 0.0.
+<li>Here you declared the value of the gravity vector (vector meaning the change in position). For each second in time, you're accelerating the velocity of the Koala 450 pixels towards the floor. If the Koala starts from a standstill, at the one second mark he'll be moving at 450 pixels/second, at two seconds he'll be moving at 900 pixels/second, and so forth. Clear enough!
+<li>Here, you used the ccpMult to scale the acceleration down to the size of the current timestep. Recall that ccpMult multiplies a CGPoint's values by a float value, and returns the CGPoint result. Even when you’re faced with a variable frame rate, you'll still get consistent acceleration.
+<li>Here once you've calculated the gravity for the current step, you add it to your current velocity. With the new velocity you’ve calculated, you then got the velocity for a single timestep. Again, you’re doing these calculations in order to get consistent velocity, no matter what the frame rate is. 
+<li>Finally, with the velocity you calculated for this single step, you use the ccpAdd function to get the updated position for the Koala.</i>
+</ol>
+<ol>
+<li>这里你创建了init方法，并在其中将velocity变量初始化为0.0。
+<li>这里你声明了重力向量，这个向量表示的是位置的变化。每一秒钟，你都对考拉向地面的方向增加450像素的速度。考拉如果从初始的时候静止，那么到1秒钟的时候他的速度将是450像素/秒，2秒钟的时候将是900像素/秒，以此类推。
+<li>这里，你使用ccpMult来缩减加速度以适应当前的时间戳。重温一下ccpMult方法，它是一个点乘以一个浮点数，并返回一个点。经过这样的操作，即使你面对的是变化的帧率，你也能得到稳定的加速度。
+<li>这里你已经计算得到了当前帧的重力加速度，把它和当前速率相加。这样，你就得到了当前时间戳的速率，这样做的目的也是无论当前的帧率如何，都能得到一致的速率。
+<li>最后，用最终的速率来更新考拉的坐标。</i>
+</ol>
+
+Congratulations! You are well on your way to writing your first physics engine! Build and run now to see the result!
+恭喜你！你已经准备好了写你的第一个物理引擎了！编译并运行，看看结果吧！
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-koalio-sinksb" rel="attachment wp-att-15250"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Koalio-Sinksb.png" alt="" title="Falling Through the Ground" width="480" height="320" class="aligncenter size-full wp-image-15250" /></a>
+
+Whoops — Koalio is falling through the floor! Let’s fix that up.
+不好！考拉穿过了地面掉下去了！让我们来修正它。
+
+<h2>夜的颠簸 - 碰撞检测 Bumps In The Night – Collision Detection</h2>
+
+Collision detection is a fundamental part of any physics engine. There are many different kinds of collision detection, from simple bounding box detection, to complex 3D mesh collision detection. Lucky for you, a platformer like this needs only a very simple collision detection engine. 
+碰撞检测是物理引擎的基础。碰撞检测的种类很多，从简单的矩形检测，到复杂的3D mesh碰撞检测。幸运的是，一个类似的平台游戏仅仅需要最简单的碰撞检测引擎。
+
+In order to detect collisions for your Koala, you’ll need to query the TMXTileMap for the tiles that directly surround the Koala. Then, you'll use a few built-in iOS functions to test whether your Koala's bounding box is intersecting with a tile's bounding box. 
+为了检测考拉的碰撞，你需要检测所有环绕考拉的tiles。然后，你需要使用一些内置的IOS方法来判断考拉的碰撞框是否和tile的碰撞框有接触。
+
+<div class="note"><p><em>Note:</em> Forgot what a bounding box is?  It's simply the smallest axis-aligned rectangle that a sprite fits inside.  Usually this is straightforward and is the same as the frame of the sprite (including transparent space), but when a sprite is rotated it gets a little tricky.  Don't worry - Cocos2D has a helper method to calculate this for you :]</p></div>
+<div class="note"><p><em>注意：</em> 你忘记了什么是bounding box（碰撞框）了吗？它就是包围sprite对象最小的矩形。通常它和sprite里的frame的大小是一致的（包含透明区域），但是当一个sprite旋转后，情况会变得略微复杂些，不过不要因此焦虑，Cocos2D有一个辅助方法来帮你解决此类问题 :]</p></div>
+
+The functions CGRectIntersectsRect and CGRectIntersection make these kinds of tests very simple. CGRectIntersectsRect tests if two rectangles intersect, and CGRectIntersection returns the intersecting CGRect. 
+CGRectIntersectsRect和CGRectIntersection方法正是用来解决此类问题的。CGRectIntersectsRect检测两个巨型是否相交，CGRectIntersection则能返回两个相交矩形中间相交的部分。
+
+First, you need to find the bounding box of your Koala. Every sprite loaded has a bounding box that is the size of the texture and is accessible with the boundingBox property. However, you'll usually want to use a smaller bounding box. 
+首先，你需要找到考拉的碰撞框。每一个sprite对象都有一个和它的纹理一样大小的碰撞框，通过boundingBox属性可以获取到。但是，你往往需要一个更小一些的碰撞框。
+
+Why? The texture usually has some transparent space near the edges, depending on the Koala sprite. You don't want to register a collision when this transparent space overlaps, but only when actual pixels start to overlap. 
+为什么呢？纹理通常都会在边缘有一些透明的区域，就拿我们的考拉来说吧，你并不想让它的透明区域也参与碰撞，而只想让实际有像素的区域有碰撞。
+
+Sometimes you'll even want the pixels to overlap a little bit. When Mario is unable to further move into a block, is he just barely touching it, or do his arms and nose encroach just a little bit into the block?
+有时候让碰撞之间有一丁点像素重叠也是很好的。想像一下，当马里奥碰到墙而不能移动时，他是一点儿也不能移动了，还是他的手臂和鼻子稍微陷进去一些呢？
+
+Let's try it out.  In <em>Player.h</em>, add:
+我们这就试试。在<em>Player.h</em>中，添加：
+
+<pre lang="objc">
+-(CGRect)collisionBoundingBox;
+</pre>
+
+And in <em>Player.m</em>, add:
+在<em>Player.m</em>中，添加：
+
+<pre lang="objc">
+-(CGRect)collisionBoundingBox {
+  return CGRectInset(self.boundingBox, 3, 0);
+}
+</pre>
+
+CGRectInset shrinks a CGRect by the number of pixels specified in the second and third arguments. So in this case, the width of your collision bounding box will be six pixels smaller — three on each side — than the bounding box based on the image file you're using.
+CGRectInset方法可将一个CGRect缩减指定的像素，宽高有第二和第三个参数指定。对于我们来说，宽度将比原碰撞框缩减6像素-两边分别3像素。
+
+<h2>重活 Heavy Lifting</h2>
+
+Now it's time to do the heavy lifting.  ("Hey, are you calling me fat?" says Koalio).
+是时候来做一些重活了。（考拉说：“你是觉得我胖的跳不起来了吗？”（Heavy Listing有很难提起来的意思））。
+
+You're going to need a number of methods in your GameLevelLayer in order to accomplish the collision detection. You'll need:
+为了完成碰撞检测，你需要在GameLevelLayer中添加一系列方法，有以下这些：
+
+<ul>
+<li>
+A method that returns the coordinates of the eight tiles that surround the current location of the Koala.
+一个返回当前考拉位置周围8个tile的坐标的方法。
+</li>
+<li>
+A method to determine which, if any of these eight tiles is a collision tile. Some of your tiles won't have physical properties, like clouds in the background, and therefore your Koala won't collide with them.
+一个方法用来判断这8个tile中是否包含有碰撞属性的。有一些tile是不具有碰撞属性的，比如背景中的云朵，这些仅仅是装饰作用而已。
+</li>
+<li>
+A method to resolve those collisions in a prioritized way.
+一个方法根据优先级来处理碰撞。
+</li>
+</ul>
+
+You'll create two helper methods that will make accomplishing the above methods easier. 
+为了更轻松的实现以上方法，你还需要创建两个辅助方法。
+
+<ul>
+<li>
+A method that calculates the tile position of the Koala.
+一个计算考拉当前tile坐标的方法。
+</li>
+<li>
+A method that takes a tile’s coordinates and returns the rect in Cocos2D coordinates.
+一个根据tile坐标得到tile真实点坐标矩形框的方法。
+</li>
+</ul>
+
+Tackle the helper methods first. Add the following code to <em>GameLevelLayer.m</em>:
+先来处理这些辅助方法。在<em>GameLevelLayer.m</em>中添加一下代码：
+
+<pre lang="objc">
+- (CGPoint)tileCoordForPosition:(CGPoint)position 
+{
+  float x = floor(position.x / map.tileSize.width);
+  float levelHeightInPixels = map.mapSize.height * map.tileSize.height;
+  float y = floor((levelHeightInPixels - position.y) / map.tileSize.height);
+  return ccp(x, y);
+}
+
+-(CGRect)tileRectFromTileCoords:(CGPoint)tileCoords 
+{
+  float levelHeightInPixels = map.mapSize.height * map.tileSize.height;
+  CGPoint origin = ccp(tileCoords.x * map.tileSize.width, levelHeightInPixels - ((tileCoords.y + 1) * map.tileSize.height));
+  return CGRectMake(origin.x, origin.y, map.tileSize.width, map.tileSize.height);
+}
+</pre>
+
+This first method gives you the coordinate of the tile based on the position you pass in. In order to get a tile position, you just divide the coordinate value by the size of the tile. 
+第一个方法根据你传入的点坐标得到tile坐标。为了得到tile坐标，你只需把点坐标除以tile的大小。
+
+You need to invert the coordinate for the height, because the coordinate system of Cocos2D/OpenGL has an origin at the bottom left of the world, but the tile map coordinate system starts at the top left of the world. Standards – aren’t they great?
+你需要翻转一下高度坐标，因为Cocos2D/OpenGL的坐标系原点是左下角，但是tile map的坐标系原点是左上角。他们使用的不同的标准。
+
+The second method reverses the process of calculating the coordinate. It multiplies the tile coordinate by tile size. Once again, you have to reverse coordinate systems, so you're calculating the total height of the map (map.mapSize.height * map.tileSize.height) and then subtracting the height of the tiles. 
+第二个方法的工作跟第一个方法相反。它得到的是tile的真实点坐标。同样，因为坐标系的关系，需要翻转高度坐标。通过map.mapSize.height * map.tileSize.height计算得到地图的总高度，然后再减去tile的高度。
+
+Why do you add one to the tile height coordinate? Remember, the tile coordinate system is zero-based, so the 20th tile has an actual coordinate of 19. If you didn't add one to the coordinate, the point it returned would be 19 * tileHeight. 
+为什么你需要在此多加一个tile的高度呢？请记住，tile坐标系统是从0开始算的，所以第20个tile实际上的坐标是19，如果你不多加上一个tile的坐标，实际得到的结果将会是19 * tileHeight。
+
+<h2>我被Tile包围啦！ I’m Surrounded By Tiles!</h2>
+
+Now move on to the method that will retrieve the surrounding tiles. In this method you'll be building an array that will be returned to the next method on the list. This array will contain the GID of the tile, the tiled map coordinate for that tile, and information about the CGRect origin for that tile. 
+现在把注意力放到获取周围tile上。在这个方法里你将会构建一个数组并将其传递给接下来的方法中。这个数组包含了tile的GID，tile的tilemap坐标，以及这个tile所表示的CGRect的信息。
+
+You'll be arranging this array by the order of priority that you'll use later to resolve collisions. For example, you want to resolve collisions for the tiles directly left, right, below, and above your Koala before you resolve any collisions on the diagonal tiles. Also, when you resolve the collision for a tile below the Koala, you'll need to set the flag that tells you whether the Koala is currently touching the ground.
+你将要按照处理碰撞的优先级顺序来安排这个数组。例如，你想要首先按照位于考拉左，右，下，上的顺序来处理碰撞，之后再考虑对角线上的tile。另外，当你处理位于考拉脚下的tile时，你需要判断此时考拉是否和地面有接触。
+
+Add the following method, still in <em>GameLevelLayer.m</em>:
+还是在<em>GameLevelLayer.m</em>中，加入以下方法：
+
+<pre lang="objc">
+-(NSArray *)getSurroundingTilesAtPosition:(CGPoint)position forLayer:(CCTMXLayer *)layer {
+  
+  CGPoint plPos = [self tileCoordForPosition:position]; //1
+  
+  NSMutableArray *gids = [NSMutableArray array]; //2
+
+  for (int i = 0; i < 9; i++) { //3
+    int c = i % 3;
+    int r = (int)(i / 3);
+    CGPoint tilePos = ccp(plPos.x + (c - 1), plPos.y + (r - 1));
+    
+    int tgid = [layer tileGIDAt:tilePos]; //4
+    
+    CGRect tileRect = [self tileRectFromTileCoords:tilePos]; //5
+    
+    NSDictionary *tileDict = [NSDictionary dictionaryWithObjectsAndKeys:
+                 [NSNumber numberWithInt:tgid], @"gid",
+                 [NSNumber numberWithFloat:tileRect.origin.x], @"x",
+                 [NSNumber numberWithFloat:tileRect.origin.y], @"y",
+                 [NSValue valueWithCGPoint:tilePos],@"tilePos",
+                 nil];
+    [gids addObject:tileDict]; //6
+    
+  }
+  
+  [gids removeObjectAtIndex:4];
+  [gids insertObject:[gids objectAtIndex:2] atIndex:6];
+  [gids removeObjectAtIndex:2];
+  [gids exchangeObjectAtIndex:4 withObjectAtIndex:6];
+  [gids exchangeObjectAtIndex:0 withObjectAtIndex:4]; //7
+  
+  for (NSDictionary *d in gids) {
+    NSLog(@"%@", d);
+  } //8
+  
+  return (NSArray *)gids;
+}
+</pre>
+
+Phew - there's a lot of code here!  Don't worry, we'll go over it in detail now.
+呼-真是不少的代码！不过别着急，我们会一点一点来解释它们的。
+
+Before we go section by section, note that you're passing in a layer object here. In your tiled map, you have the three layers we discussed earlier - hazards, walls, and backgrounds.
+在我们继续之前，请先留意一下，参数里有一个layer对象，在你的tiled map中，有我们之前谈到过的3个layer-harzards（危险物层），walls（墙）和backgrounds（背景）。
+
+Having separate layers allows you to handle the collision detection differently depending on the layer.
+分层使得你可以根据不同层来分别处理碰撞检测。
+
+<ul>
+<li><em>Koala vs. hazards.</em>  If it's a collision with a block from the hazard layer, you'll kill the poor Koala (rather brutal, aren't you?).</li>
+<li><em>考拉 vs. 危险物.</em> 如果考拉碰触到了一个危险物层的东西，你将会杀死这只可怜的考拉（相当的残忍，不是吗？） </li>
+<li><em>Koala vs. walls.</em> If there's a collision with a block on the wall layer, then you’ll resolve that collision by preventing further movement in that direction.  "Halt, beast!"</li>
+<li><em>考拉 vs. 墙.</em> 如果考拉碰触到了墙层里边的东西，那么将要停止考拉继续像这个方向移动。“停下来，野兽！”</li>
+<li><em>Koala vs. backgrounds.</em>  If the Koala collides with a block from the background layer, you’ll do nothing.  A lazy programmer is the best kind, or so they say ;]</li>
+<li><em>考拉 vs. 背景.</em> 如果考拉碰触到了背景层里的东西，你不会做任何事情，懒程序员是最好的一类程序员...或者仅仅是他们自己说的 ;]</li>
+</ul>
+
+There are other ways to distinguish between different types of blocks, but for your needs, the layer separation is efficient.
+尽管还有很多方法可以用来区分不同属性的物体，但是对你来说，用层来区分是最具效率的。
+
+OK, now let's go through the code above section by section.
+OK，现在让我们一步一步过一遍上面的代码。
+
+<ol>
+<li>The first thing you do in this new method is retrieve the tile coordinates for the input position (which will be the position of the Koala). </li>
+<li>新方法首先获取当前考拉的tile坐标，输入参数是考拉当前的点坐标。 </li>
+<li>Next, you create a new array that you will return with all the tile information. 
+<li>接下来，创建一个新的数组准备接收所有的tile信息。
+<li>Then you start a loop that will run nine times - because there are 9 possible spaces around (and including) the Koala's space.  The next few lines calculate the positions of the nine tile positions and store them in the tilePos variable.</li>
+<li>然后开始一个新的循环，一共执行9次，因为一共有9个环绕考拉的位置。接下来的几行计算这9个tile坐标兵把它们存在tilePos变量中。</li>
+</ol>
+
+<div class="note"><p><em>Note:</em> You only need information for eight tiles, because you should never need to resolve a collision with the tile space in the center of the 3 by 3 grid. 
+<div class="note"><p><em>注意：</em> 你仅仅需要8个tile的信息，因为永远也不需要计算3X3块儿最中心的那一个。
+</p><p>You should always have caught that collision and resolved it in a surrounding tile position. If there is a collidable tile in the center of the grid, Koalio has moved at least half his width in a single frame.  He shouldn't move this fast, ever - at least in this game!</p>
+</p><p>你应当总是在考拉周边的tile处理碰撞。如果在考拉中心的tile出现了碰撞，那说明考拉在一帧中至少移动了半个他的宽度的距离。他永远不该移动的如此之快的，至少在本游戏中是这样的。</p>
+<p>To make iterating through those eight tiles easy, just include the tile position of the Koala and remove it at the end.</p>
+<p>为了让遍历这8个tile更容易，我们先把考拉的中心tile加入进来，并在最后移除它。</p>
+</div>
+
+<ol start="4">
+<li>The fourth section calls the tileGIDAt: method. This method will return the GID of the tile at a specific tile coordinate. If there's no tile at that coordinate, it returns zero. Later on, you'll make use of the fact that zero means “no tile found.”</li>
+<li>第4部分调用了tileGIDAt:方法，该方法会返回指定坐标的tile的GID。如果那个坐标上没有tile，则返回0。稍后你将会用到它。</li>
+<li>Next, you use the helper method to calculate the Cocos2D world space coordinates for each tile's CGRect, and then you store all that information in an NSDictionary. The collection of dictionaries is put into the return array.</li>
+<li>接下来，你使用辅助方法来计算每个tile对应的CGRect的Cocos2D世界坐标，然后将其储存在一个NSDictionary对象中。字典的集合被加入到返回的数组中。</li>
+<li>In section seven, you are removing the Koala tile from the array and sorting the tiles into a priority order. You will want to resolve collisions with the tiles directly adjacent (above, below, left, right) to the Koala first.</li>
+<li>在第7部分中，你把考拉中心的tile从数组中移除，并把数组中的tile按照优先级排序。你首先解决直接和考拉相连的tile（上，下，左，右）。</li>
+</ol>
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/07/Koalio-collision2.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/07/Koalio-collision2.png" alt="" title="Koalio Collision" width="163" height="153" class="alignright size-full wp-image-18822" /></a>
+
+Often in the case of the tile directly under the Koala, resolving the collision will also resolve the collisions for the diagonal tiles. See the figure to the right.  By resolving the collision beneath Koalio, shown in red, you also resolve the collision with block #2, shown in blue.  
+有这样一种很容易发生的情景，你在处理考拉正下方的tile碰撞时，也同时会处理对角线上的tile。请看右边的示例图。红色的部分是考拉正下方的tile，同时你也需要处理#2用蓝色标识的部分。
+
+Your collision detection routine will make certain assumptions about how to resolve collisions. Those assumptions are valid more often for adjacent tiles than for diagonal tiles, so you want to avoid collision resolution with diagonal tiles as much as possible. 
+你的碰撞检测子程序会按照一定逻辑来处理碰撞。通常直接连接的tile比对角线的tile更应该被检测到，所以你尽可能的避免去检测对角线的碰撞。
+
+Here's an image that shows the order of the tiles in the array before, and after, the resorting. You can see that after the resorting, the bottom, top, left, and right tiles are resolved first. Knowing this order will also help you know when to set the flag that the Koala is touching the ground (so you know if he can jump or not, which you’ll cover later).
+这张图片显示了原始的tile顺序，和重新排序之后的顺序，你可以看到，重排之后的顺序是下，上，左，右。注意这个顺序也可以帮助你在检测的一开始就知道考拉是否和地面有接触，这个结果决定了它是否可以跳跃，你将在之后的教程中接触这些。
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-tile-order-given-and-desired" rel="attachment wp-att-15243"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Tile-Order-given-and-desired-480x186.png" alt="" title="Tile Order" width="480" height="186" class="aligncenter size-medium wp-image-15243" /></a>
+
+<ol start="8">
+<li>The loop in section eight provides us with an output of the tiles, so you can make sure that you are doing everything correctly. </li>
+<li>第8部分中的循环依次输出这些tile，你可以清楚的知道一切都是正确的。</li>
+</ol>
+
+You're almost ready for the next build to verify that everything is correct! However, there are a few things to do first. You need to add the walls layer as an instance variable to the GameLevelLayer class so you can access it there.
+马上就可以验证一切都是正确的了！但是，还是有些一些事情要先做。你需要把walls layer作为成员变量加入到GameLevelLayer中，以方便以后使用。
+
+Inside <em>GameLevelLayer.m</em>, make the following changes:
+在<em>GameLevelLayer.m</em>中，做如下修改：
+
+<pre lang="objc">
+// Add to the @interface declaration
+CCTMXLayer *walls;
+
+// Add to the init method, after the map is added to the layer
+walls = [map layerNamed:@"walls"];
+
+// Add to the update method
+[self getSurroundingTilesAtPosition:player.position forLayer:walls];
+</pre>
+
+Build and run!  But unfortunately it crashes, as you will see in the console:
+编译并运行！很不幸的。。。程序挂掉了，你可以在console（控制台）中看到如下内容：
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-tile-positions" rel="attachment wp-att-15242"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Tile-Positions-700x405.png" alt="" title="Console Output" width="700" height="405" class="aligncenter size-large wp-image-15242" /></a>
+
+First you'll see you're getting information about tile positions, and every so often a GID value (but mostly zeroes, because it's mostly open space). 
+首先你得到了一些tile的位置信息，并不时的会出现一些GID的值，这些GID大多数是0，因为此时已经处于开放空间了。
+
+Ultimately, this will crash with a TMXLayer: invalid position error message though. This happens when the tileGIDat: method is given a tile position that is outside the boundaries of the tile map. 
+最终，程序会因为TMXLayer: invalid position错误挂掉。这是因为tileGIDat:方法取到了tile map范围之外的坐标。
+
+You will catch and prevent this error a little later on — but first, you're going to stop it from happening by implementing collision detection.
+我们稍后将使用一些措施预防这个问题，不过当前，你将通过碰撞检测来解决它。
+
+<h2>收回考拉的权限 Taking Away Your Koala’s Privileges</h2>
+
+Up to this point, the Koala got to set his own position. But now you’re taking that privilege away.
+知道现在为止，考拉还自己设置自己的坐标呢。不过现在，你要收回它这样做的权限。
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/wait%e2%80%a6what" rel="attachment wp-att-15674"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/Wait…What.jpg" alt="" title="Wait…What?" width="400" height="400" class="aligncenter size-full wp-image-15674" /></a>
+
+If the Koala updates his position and then the GameLevelLayer finds a collision, you’ll want your Koala to get moved back. You don't want him bouncing all over like a cat on catnip! 
+如果考拉自己更新自己的坐标，那么当GameLevelLayer发现一个碰撞时，你将要拉回考拉让其返回原处。你并不想让你的考拉弹来弹去的，像一只乱窜的猫对吧！
+
+So, he needs a new variable that he can update, but that will stay a secret between himself and the GameLevelLayer — desiredPosition.
+所以，他需要一个新的持续更新的变量，这就是desiredPosition，它和GameLevelLayer之间有一些秘密的联系。
+
+You want the Koala class to calculate and store his desired position. But the GameLevelLayer will update your Koala’s position after that position is validated for collisions. The same applies to the collision detection tile loop — you don't want the collision detector updating the actual sprite until after all the tiles have been checked for collisions and resolved.
+我们现在让考拉计算它自己他渴望的坐标。但是由GameLevelLayer负责更新考拉的实际坐标，考拉渴望的坐标需要经过碰撞检测的验证之后才会被变为它真正的坐标。同样的策略也适用于tile的碰撞检测循环，直到所有的tile都被检测并处理过后，你才希望碰撞检测器更新实际的sprite。
+
+You'll need to change a few things. First, add this new property to <em>Player.h</em>
+你需要做一些改动。首先，在<em>Player.h</em>中加入新的属性：
+
+<pre lang="objc">
+@property (nonatomic, assign) CGPoint desiredPosition;
+</pre>
+
+And synthesize it in <em>Player.m</em>:
+在<em>Player.m</em>中添加synthesize部分：
+
+<pre lang="objc">
+@synthesize desiredPosition = _desiredPosition;
+</pre>
+
+Now, modify the <em>collisionBoundingBox</em> method in <em>Player.m</em> to the following:
+现在，按如下修改<em>Player.m</em>中的<em>collisionBoundingBox</em>方法：
+
+<pre lang="objc">
+-(CGRect)collisionBoundingBox {
+  CGRect collisionBox = CGRectInset(self.boundingBox, 3, 0);
+  CGPoint diff = ccpSub(self.desiredPosition, self.position);
+  CGRect returnBoundingBox = CGRectOffset(collisionBox, diff.x, diff.y);
+  return returnBoundingBox;
+}
+</pre>
+
+This computes a bounding box based on the desired position, which the layer will use for collision detection.
+这一步根据desired坐标计算得到bounding box，这个bounding box在之后的碰撞检测中会用到：
+
+<div class="note"><p><em>Note:</em> There are many different ways you could have calculated this new bounding box.  You could have implemented code similar to that inside CCNode's boundingBox and transform methods, but this way was a lot easier, even if it is a slightly roundabout way to get what you want.</p></div>
+<div class="note"><p><em>注意：</em> 有很多不同的方法可以得到这个新的碰撞框。虽然你可以使用类似CCNode中的boundingBox和transform方法，但是我们目前使用的这个方法更简单，尽管绕了些圈子。</p></div>
+
+Next, make the following change to the update method so that it's updating the desiredPosition property instead of the position property:
+接下来，对update方法作如下修改，我们使用desiredPosition属性来替换掉原先的position属性：
+
+<pre lang="objc">
+// Replace this line 'self.position = ccpAdd(self.position, stepVelocity);' with:
+self.desiredPosition = ccpAdd(self.position, stepVelocity);
+</pre>
+
+<h2>处理碰撞 Let’s Resolve Some Collisions!</h2>
+
+Now it's time for the real deal. This is where you’re going to tie it all together. Add the following method to <em>GameLevelLayer.m</em>:
+现在是时候动真格的了。你将在此把以上的内容串联到一起。在<em>GameLevelLayer.m</em>中加入以下方法：
+
+<pre lang="objc">
+-(void)checkForAndResolveCollisions:(Player *)p {  
+  NSArray *tiles = [self getSurroundingTilesAtPosition:p.position forLayer:walls ]; //1
+
+  for (NSDictionary *dic in tiles) {
+    CGRect pRect = [p collisionBoundingBox]; //2
+    
+    int gid = [[dic objectForKey:@"gid"] intValue]; //3
+    
+    if (gid) {
+      CGRect tileRect = CGRectMake([[dic objectForKey:@"x"] floatValue], [[dic objectForKey:@"y"] floatValue], map.tileSize.width, map.tileSize.height); //4
+      if (CGRectIntersectsRect(pRect, tileRect)) {
+        CGRect intersection = CGRectIntersection(pRect, tileRect); //5
+        
+        int tileIndx = [tiles indexOfObject:dic]; //6
+
+        if (tileIndx == 0) {
+          //tile is directly below Koala
+          p.desiredPosition = ccp(p.desiredPosition.x, p.desiredPosition.y + intersection.size.height);
+        } else if (tileIndx == 1) {
+          //tile is directly above Koala
+          p.desiredPosition = ccp(p.desiredPosition.x, p.desiredPosition.y - intersection.size.height);
+        } else if (tileIndx == 2) {
+          //tile is left of Koala
+          p.desiredPosition = ccp(p.desiredPosition.x + intersection.size.width, p.desiredPosition.y);
+        } else if (tileIndx == 3) {
+          //tile is right of Koala
+          p.desiredPosition = ccp(p.desiredPosition.x - intersection.size.width, p.desiredPosition.y);
+        } else {
+          if (intersection.size.width > intersection.size.height) { //7
+            //tile is diagonal, but resolving collision vertically
+            float intersectionHeight;
+            if (tileIndx > 5) {
+              intersectionHeight = intersection.size.height;
+            } else {
+              intersectionHeight = -intersection.size.height;
+            }
+            p.desiredPosition = ccp(p.desiredPosition.x, p.desiredPosition.y + intersection.size.height );
+          } else {
+          	//tile is diagonal, but resolving horizontally
+            float resolutionWidth;
+            if (tileIndx == 6 || tileIndx == 4) {
+              resolutionWidth = intersection.size.width;
+            } else {
+              resolutionWidth = -intersection.size.width;
+            }
+            p.desiredPosition = ccp(p.desiredPosition.x , p.desiredPosition.y + resolutionWidth);
+          } 
+        } 
+      }
+    } 
+  }
+  p.position = p.desiredPosition; //7
+}
+</pre>
+
+Okay! Let’s look at the code you’ve just implemented.
+好的！让我们看看刚刚实现的代码。
+
+<ol>
+<li>First you retrieve the set of tiles that surround the Koala. Next you loop through each tile in that set. Each time you iterate through a tile, you check if there's a collision. If there is a collision, you resolve it by changing the desiredPosition attribute of the Koala.</li>
+<li>首先你获取考拉周围的tile。接着遍历每个tile，每一次遍历都检测是否有碰撞。如果有碰撞，则适当改变考拉的desiredPosition属性来解决碰撞。</li>
+<li>Inside each loop, you first get the current bounding box for the Koala. As I've mentioned previously, this desiredPosition variable is the basis for the collisionBoundingBox. Each time a collision is found, the desiredPosition variable is changed so that it's no longer colliding with that tile. Often, that will mean that other tiles surrounding the Koala are no longer in collision either, and when the loops arrive at those tiles, you won't need to resolve those collisions again.</li>
+<li>在每一次遍历循环中，你首先得到考拉当前的碰撞框。正如我之前提到过的，desiredPosition变量是collisionBoundingBox方法的基础。每当检测到一次碰撞，desiredPosition变量都会相应变化来消除碰撞。通常，这意味着其他的tile也不会有碰撞了，在之后循环到这些tile时，你就不需要再次对其进行碰撞检测了。</li>
+<li>The next step is to retrieve the GID you stored for the tile in the dictionary. There may not be an actual tile in that position. If there isn't, you'll have stored a zero in the dictionary. In that case, the current loop is finished and it will move on to the next tile.</li>
+<li>下一步是从字典中获取指定tile的GID。在那个点上不一定真的有tile，如果没有，你将获取一个0，并且结束本次循环继续下一次循环。</li>
+<li>If there is a tile in that position, you need to get the CGRect for that tile. There may or may not be a collision there. You do that with the next line of code and store it in the tileRect variable. Now that you have a CGRect for the Koala and for the tile, you can check them for collisions.</li>
+<li>如果这一点上有tile，你需要得到这个tile的CGRect。这一点或许有碰撞。你在下一行代码来处理它并将其保存在tileRect变量中。现在你有了考拉的CGRect和tile的CGRect，你可以顺利进行碰撞检测了。</li>
+<li>To check for the collision, you run the CGRectIntersectsRect. If there is a collision, then you get the CGRect that describes the overlapping section of the two CGRects with the CGRectIntersection() function.</li>
+<li>为了检测碰撞，你使用了CGRectIntersectsRect方法。如果发现了一个碰撞，你便用CGRectIntersection方法获取一个表示两矩形重叠部分的CGRect。</li>
+</ol>
+
+<h2>暂停并考虑个困境... Pausing to Consider a Dilemma...</h2>
+
+Here’s the tricky bit. You need to determine how to resolve this collision. 
+这里有个棘手的问题。你需要决定如何解决碰撞。
+
+You might think the best way to do so is to move your Koala backwards out of the collision, or in other words, to reverse the last move until a collision no longer exists with the tile. That's the way some physics engines work, but you’re going to implement a better solution. 
+你想到的最好的方法也许是将考拉移动出碰撞的范围，换句话说，就是把最后一步会和tile产生碰撞的移动撤销。这种方法是一些物理引擎所使用的，但是你将要实现一个更好的方案。
+
+Consider this: gravity is constantly pulling the Koala into the tiles underneath him, and those collisions are constantly being resolved. 
+考虑一下：重力持续不断地向下拉考拉，考拉和它脚下的tile持续产生碰撞。
+
+If you imagine that the Koala is moving forward, the Koala is also going to be moving downward at the same time due to gravity. If you choose to resolve that collision by reversing the last move (forward and down), the Koala would need to move upward and backward — but that's not what you want! 
+如果你的考虑正在向前移动，与此同时重力把它向下拉。如果你采取上面提到的方法解决碰撞的话，那么考拉将会同时向上和向后移动，这种情况并不是你想要的！
+
+Your Koala needs to move up enough to stay on top of those tiles, but continue to move forward at the same pace. 
+你的考拉需要向上移动一点儿，并且仍然向前移动。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/5_goodbad_vertical.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/5_goodbad_vertical-500x500.jpg" alt="Illustration of good vs. bad ways to move up from the wall." title="Illustration of good vs. bad ways to move up from the wall." width="500" height="500" class="alignnone size-large wp-image-16497" /></a>
+
+The same problem would also present itself if the Koala were sliding down a wall. If the user is pressing the Koala into the wall, then the Kolala’s desired trajectory is diagonally downward and into the wall. Reversing this trajectory would move him upward and away from the wall — again, not the motion you want! You want the Koala to stay on the outside of the wall without slowing or reversing his downward speed.
+同样的问题也会出现在墙上滑动。如果玩家让考拉紧贴着墙，考拉渴望的运动轨迹是斜向下对着墙的方向。撤销这个轨迹会让考拉同时向上和向远离墙的方向移动，同样也不是你想要的！你想让考拉一直贴着墙逐渐变慢的向下移动。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/6_goodbad_horizontal.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/6_goodbad_horizontal-500x500.jpg" alt="Illustration of good vs. bad ways to move away from the wall." title="Illustration of good vs. bad ways to move away from the wall." width="500" height="500" class="alignnone size-large wp-image-16498" /></a>
+
+Therefore, you need to decide when to resolve collisions vertically, when to resolve them horizontally, and to handle both events as mutually exclusive cases. Some physics engines always resolve one way first, but you really want to make the decision based on the location of the tile relative to the Koala. So, for example, when the tile is directly beneath the Koala, you will always resolve that collision by moving the Koala upward. 
+因此，你需要决定何时处理竖直方向的碰撞，何时处理水平方向的碰撞，每一种都应该独占处理。一些物理引擎总是优先处理一个方向的，但是你真正做决定是要依托于考拉和tile的相对位置关系的。所以，当tile在考拉的正下方时，你总是让考拉向上移动。
+
+What about when the tile is diagonally opposite to the Koala's position? In this case, you'll use the intersecting CGRect as a guess as to how you should move him. If the intersection of the two rects is wider than it is deep, you'll assume that the correct resolution in this case is vertical. If the intersecting rect is taller than it is wide, you’ll resolve it horizontally.
+那么对角线碰撞的情况又该如何处理呢？对我们来说，你将使用相交矩形来判断如何行动。如果相交矩形的宽度比高度大，你就假定正确的碰撞解决方式是竖直方向的，如果高度大于宽度，那么就是水平方向的。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/7_forces_ratio.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/7_forces_ratio-480x245.jpg" alt="Detecting collision direction from intersection rectangle." title="Detecting collision direction from intersection rectangle." width="480" height="245" class="alignnone size-medium wp-image-16499" /></a>
+
+This process will work reliably as long as the Koala's velocity stays within certain bounds and your game runs at a reasonable frame rate. Later on, you'll include some clamping code for the Koala so that he doesn't fall too quickly, which could cause problems, such as moving through an entire tile in one step.
+这一过程的稳定性依赖于考拉在边界范围内并且有一个稳定的帧率。稍后，你将会加入一些代码来保证考拉不会掉的太快，如果掉的太快，考拉将有可能在一帧里移动过一整个tile，而这将导致问题。
+
+Once you've determined whether you need a horizontal or vertical collision resolution, you will use the intersecting CGRect size in dimension to move the Koala back out of a collision state. Look at the height or width, as appropriate, of the collision CGRect and use that value as the distance to move the Koala.
+当你决定了到底是从竖直方向还是水平方向解决碰撞之后，就可以根据相交矩形的大小来把考拉移动出碰撞的范围。根据情况使用该矩形的高或宽，把考拉移动相应距离。
+
+By now, you may have suspected why you need to resolve tiles in a certain order. You'll always do the adjacent tiles before the diagonal ones. If you check the collision for the tile that is below and to the right of the Koala, you'll want to resolve this collision vertically.
+到此为止，你可能怀疑过为什么需要按顺序解决tile的碰撞。你总是优先解决直接接触的tile，然后才是对角线的tile。如果你按照先检测下边再检测右边的tile的顺序，你就会让考拉向竖直方向移动。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/07/Koalio-collision2.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/07/Koalio-collision2.png" alt="" title="Koalio Collision" width="163" height="153" class="alignright size-full wp-image-18822" /></a>
+
+However, it's possible that in this position the collision CGRect would be taller than it is wide, such as in the case where the Koala is barely colliding with the tile. 
+但是，也有可能出现碰撞的CGRect的高大于宽的情况，比如考拉刚刚接触一个tile时。
+
+Refer again to the figure to the right.  The blue area is tall and skinny, because that collision intersection only represents a small portion of the whole collision.  However, if you've already resolved the tile directly beneath the Koala, then you're no longer be in a collision state with the tile below and to the right, thereby avoiding the problem altogether.
+请再次参考右边的示例图片。蓝色区域又高又窄，因为这仅仅是一部分的碰撞区域，不过，如果你已经解决了正下方红色区域的tile的碰撞的话，就可以避免解决蓝色区域的碰撞了，问题也就随之解决了。
+
+<h2>回到代码！ Back to the Code!</h2>
+
+Returning to the monster checkForAndResolveCollisions: method… 
+回到怪物般的checkForAndResolveCollisions:方法...
+
+<ol start="6">
+<li>Section 6 has you getting the index of the current tile. You use the index to determine the position of the tile. You are going to deal with the adjacent tiles individually, moving the Koala by subtracting or adding the width or height of the collision as appropriate. Simple enough. However, once you get to the diagonal tiles, you're going to implement the algorithm described in the previous section.</li>
+<li>在第6部分中你得到了当前tile的索引。你使用这个索引来决定tile的位置。你将要分别处理紧挨着的tile，根据情况加减碰撞框的宽或高。这部分足够简单，当你处理到对角线的tile时，就可以使用前面提到过的算法了。</li>
+<li>In section 7, you determine whether the collision is wide or tall. If it's wide, you resolve vertically. You'll either be moving the Koala up or down, which you determine next by seeing if the tile index is greater than five (tiles six and seven are beneath the Koala). Based on that, you know whether you need to add or subtract the collision height from the Koala. The horizontal collision resolution follows the same logic.</li>
+<li>第7部分中，你决定了碰撞框究竟是更宽还是更高。如果它更宽，你就竖直方向解决它。根据tile的index是否大于5（6和7是在考拉之下的），来让考拉向上或向下移动。竖直方向的使用相同逻辑处理。</li>
+<li>Finally, you set the position of the Koala to the final collision-detection fixed result.</li>
+<li>最终，你将考拉的坐标设置为解决冲突之后的值。</li>
+</ol>
+
+That method is the guts of your collision detection system. It's a basic system, and you may find that if your game moves very quickly or has other goals, you need to alter it to get consistent results. At the end of this article, there are a couple of really great resources with more about how to handle collision detection. 
+这个方法是碰撞检测系统的本质。它是一个最基本的系统。如果你想让你的游戏移动更快或者还有其他目标，那么你需要适当修改它以达到一致的结果。在本篇文章的最后，我罗列了一些很棒的详细讲述碰撞检测的教程。
+
+Let's put it to use!  Make the following change to the <em>update</em> method (still in <em>GameLevelLayer</em>:)
+我们这就试试它！还是在<em>GameLevelLayer</em>中，对<em>update</em>方法做如下修改：
+
+<pre lang="objc">
+// Replace this line: "[self getSurroundingTilesAtPosition:player.position forLayer:walls];" with:
+[self checkForAndResolveCollisions:player]; 
+</pre>
+
+Also, you can remove or comment out the log statement in the <em>getSurroundingTilesAtPosition:forLayer:</em>
+你可以删除或者注释掉<em>getSurroundingTilesAtPosition:forLayer:</em>里边的log语句：
+
+<pre lang="objc">
+	/*
+  for (NSDictionary *d in gids) {
+    NSLog(@"%@", d);
+  } //8 */
+</pre>
+
+Build and run! Are you surprised by the results?
+编译并运行！你是否对结果感到惊奇呢？
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-koalio-sinksb" rel="attachment wp-att-15250"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Koalio-Sinksb.png" alt="" title="Falling Through the Ground Still" width="480" height="320" class="aligncenter size-full wp-image-15250" /></a>
+
+Koalio is stopped by the floor, but sinks into it eventually! What gives? 
+Koalio在地板接住了，但是最终还是陷了进去！怎么回事？
+
+Can you guess what’s been missed? Remember  — you are adding the force of gravity to the Koala’s velocity with each frame. This means that Koalio is constantly accelerating downward. 
+你能猜到漏掉了什么吗？回想一下，每一帧你都给考拉施加重力，这意味着考拉一直在向下加速。
+
+You are constantly adding speed to the Koala's downward trajectory until it is greater than the size of the tile — you’re moving through an entire tile in a single frame, which was a problem discussed earlier.
+你持续不断地增加速度，直到一帧中的速度足以越过一个tile了，这是之前我们讨论过的一个问题。
+
+When you resolve a collision, you also need to reset the velocity of the Koala to zero for that dimension! The Koala has stopped moving, so the velocity value should reflect it. 
+每当你解决一个碰撞时，你同样需要在那个方向上重置考拉的速速！考拉停止移动了，那么它的速度理应是0。
+
+If you don't do this, you'll get weird behaviors, both moving through tiles as you saw above, and also in situations where your Koala jumps into a low ceiling and he floats against it longer than he should. This is the kind of weirdness you want to avoid in your game.
+如果你不做这一步，你就会得到奇怪的结果，比如上面见过的穿越tile，还有一种情形，当你的考拉跳上了一个短平台时，它会滑动过长的距离，这也是你应当避免的情况。
+
+It was mentioned before that you need a good way to determine when the Koala is on the ground so he can't jump off of thin air. You'll set that flag up now. Add the indicated lines to the <em>checkForAndResolveCollisions:</em>
+之前提到过你需要一个好的方法来让考拉在地面的时候不能跳跃。现在就来为其设置一个标志，在<em>checkForAndResolveCollisions:</em>中加入以下内容：
+
+<pre lang="objc">
+-(void)checkForAndResolveCollisions:(Player *)p {
+  
+  NSArray *tiles = [self getSurroundingTilesAtPosition:p.position forLayer:walls ]; //1
+  
+  p.onGround = NO; //////Here
+
+  for (NSDictionary *dic in tiles) {
+    CGRect pRect = [p collisionBoundingBox]; //3
+    
+    int gid = [[dic objectForKey:@"gid"] intValue]; //4
+    if (gid) {
+      CGRect tileRect = CGRectMake([[dic objectForKey:@"x"] floatValue], [[dic objectForKey:@"y"] floatValue], map.tileSize.width, map.tileSize.height); //5
+      if (CGRectIntersectsRect(pRect, tileRect)) {
+        CGRect intersection = CGRectIntersection(pRect, tileRect);
+        int tileIndx = [tiles indexOfObject:dic];
+
+        if (tileIndx == 0) {
+          //tile is directly below player
+          p.desiredPosition = ccp(p.desiredPosition.x, p.desiredPosition.y + intersection.size.height);
+          p.velocity = ccp(p.velocity.x, 0.0); //////Here
+          p.onGround = YES; //////Here
+        } else if (tileIndx == 1) {
+          //tile is directly above player
+          p.desiredPosition = ccp(p.desiredPosition.x, p.desiredPosition.y - intersection.size.height);
+          p.velocity = ccp(p.velocity.x, 0.0); //////Here
+        } else if (tileIndx == 2) {
+          //tile is left of player
+          p.desiredPosition = ccp(p.desiredPosition.x + intersection.size.width, p.desiredPosition.y);
+        } else if (tileIndx == 3) {
+          //tile is right of player
+          p.desiredPosition = ccp(p.desiredPosition.x - intersection.size.width, p.desiredPosition.y);
+        } else {
+          if (intersection.size.width > intersection.size.height) {
+            //tile is diagonal, but resolving collision vertially
+			p.velocity = ccp(p.velocity.x, 0.0); //////Here
+            float resolutionHeight;
+            if (tileIndx > 5) {
+              resolutionHeight = intersection.size.height;
+              p.onGround = YES; //////Here
+            } else {
+              resolutionHeight = -intersection.size.height;
+            }
+            p.desiredPosition = ccp(p.desiredPosition.x, p.desiredPosition.y + intersection.size.height );
+            
+          } else {
+            float resolutionWidth;
+            if (tileIndx == 6 || tileIndx == 4) {
+              resolutionWidth = intersection.size.width;
+            } else {
+              resolutionWidth = -intersection.size.width;
+            }
+            p.desiredPosition = ccp(p.desiredPosition.x , p.desiredPosition.y + resolutionWidth);
+          } 
+        } 
+      }
+    } 
+  }
+  p.position = p.desiredPosition; //8
+}
+</pre>
+
+Each time the Koala has a tile under him (either adjacently or diagonally) you set the p.onGround to YES and set his velocity to zero. Also, if the Koala has a tile adjacently above him, you set his velocity to zero. This will make the velocity variable properly reflect the Koala’s actual movement and speed.
+每当考拉脚下有tile的时候（紧贴着或者对角线都算），你就设置p.onGround为YES并把其速度置0。同样，当考拉的上边有tile时，也把速度置为0。这样做能让速率变量真实反映考拉实际的运动情况。
+
+You set the onGround flag to NO at the beginning of the loop. This way, the only time the onGround returns a YES is if you have detected a collision underneath the Koala. You can use this to know when the Koala can and cannot jump. You need to add this property to the Koala class, so do that now.
+每次循环开始时，你都把onGround设置为NO。这样做就可以保证仅仅在检测到考拉脚下有tile时才把onGround置为YES。你使用这个变量决定考拉能否跳跃。你需要在在Koala类中加入此属性。
+
+Add the following property to the header file (and then synthesize it in the implementation). In <em>Player.h</em>:
+在<em>Player.h</em>加入属性的声明：
+
+<pre lang="objc">
+@property (nonatomic, assign) BOOL onGround;
+</pre>
+
+And in <em>Player.m</em>:
+在<em>Player.m</em>加入synthesize部分：
+
+<pre lang="objc">
+@synthesize onGround = _onGround;
+</pre>
+
+Build and run! Is it working as expected? Yes! O frabjous day! Callooh! Callay!
+编译并运行！它是否正常运作了呢？是的！太好了！
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-koalio-on-topb" rel="attachment wp-att-15249"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Koalio-on-topb-478x320.png" alt="" title="Koalio Standing Firm" width="478" height="320" class="aligncenter size-medium wp-image-15249" /></a>
+
+<h2>何去何从？ Where to Go From Here?</h2>
+
+Congratulations! You've built yourself a working physics engine! If you're through to this point, you can breathe a sigh of relief and pat yourself on the back. That was the hard part – nothing but smooth sailing in Part 2 of this tutorial! 
+恭喜你！你已经构建了属于你自己的物理引擎了！如果你一步一步的跟着教程走到了这里，你可以深呼吸并锤锤后背了。这是本本游戏最难的一部分，在第2部分中将会是一马平川！
+
+Here's the <a href="http://www.raywenderlich.com/downloads/SuperKoalioMiddle4.zip">complete project</a> you have built so far. 
+这里是到目前为止的<a href="http://www.raywenderlich.com/downloads/SuperKoalioMiddle4.zip">完整的工程</a>。
+
+In <a href="/?p=15267">Part 2</a>, you'll make your hero Koalio run and jump. You'll also make the spikes on the floor dangerous, and handling winning/losing the game. 
+在<a href="/?p=15267">第2部分</a>中, 你将会让你的英雄考拉跑和跳。同时在地面增加一些危险物，并处理胜利/失败的逻辑。 
+
+If you want more information about platformers and physics engines, here are a few resources I recommend:
+如果你想获取平台游戏更多的信息，以下是我收集的一些资源：
+
+<ul>
+<li>The Sonic the Hedgehog Wiki has a great section describing <a href='http://info.sonicretro.org/SPG:Solid_Tiles'>how Sonic interacts with solid tiles</a>.</li>
+<li>刺猬索尼克Wiki描述 <a href='http://info.sonicretro.org/SPG:Solid_Tiles'>索尼克是如何和实体tile碰撞的</a>。</li>
+<li>Perhaps the best <a href='http://higherorderfun.com/blog/2012/05/20/the-guide-to-implementing-2d-platformers/'>guide to implementing platformers</a>, from Higher-Order Fun. </li>
+<li>也许是目前最好的 <a href='http://higherorderfun.com/blog/2012/05/20/the-guide-to-implementing-2d-platformers/'>平台游戏指南</a>，高阶的。 </li>
+<li>The creators of N have a <a href='http://www.metanetsoftware.com/technique/tutorialA.html'> great tutorial</a> that goes well beyond the basics of tile-based collision systems.
+<li>游戏“N”的作者撰写的一篇<a href='http://www.metanetsoftware.com/technique/tutorialA.html'> 很棒的教程</a>。
+</li>
+</ul>
+
+Let me know how it’s going so far by submitting your comments to the forums!
+你可以在留言区留言以让我知道你的进度！
+
+<img src="http://www.raywenderlich.com/downloads/JacobGundersen.jpg" class="photo alignleft" />
+<i>This is a blog post by iOS Tutorial Team member <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>, an indie game developer who runs the <a href="http://indieambitions.com/">Indie Ambitions</a> blog.  Check out his latest app - <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+<i>这是一篇IOS教程组的成员 <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>发布的教程, 他是一位独立游戏开发者，经营着<a href="http://indieambitions.com/">Indie Ambitions</a> 博客。去看看他最新的app吧<a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>

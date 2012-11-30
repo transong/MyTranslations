@@ -1,0 +1,612 @@
+接上篇
+
+编译并运行！它是否正常运作了呢？是的！太好了！
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-koalio-on-topb" rel="attachment wp-att-15249"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Koalio-on-topb-478x320.png" alt="" title="Koalio Standing Firm" width="478" height="320" class="aligncenter size-medium wp-image-15249" /></a>
+
+<h2>何去何从？ Where to Go From Here?</h2>
+
+恭喜你！你已经构建了属于你自己的物理引擎了！如果你一步一步的跟着教程走到了这里，你可以深呼吸并锤锤后背了。这是本本游戏最难的一部分，在第2部分中将会是一马平川！
+
+这里是到目前为止的<a href="http://www.raywenderlich.com/downloads/SuperKoalioMiddle4.zip">完整的工程</a>。
+
+在<a href="/?p=15267">第2部分</a>中, 你将会让你的英雄考拉跑和跳。同时在地面增加一些危险物，并处理胜利/失败的逻辑。 
+
+如果你想获取平台游戏更多的信息，以下是我收集的一些资源：
+
+<ul>
+<li>刺猬索尼克Wiki描述 <a href='http://info.sonicretro.org/SPG:Solid_Tiles'>索尼克是如何和实体tile碰撞的</a>。</li>
+<li>也许是目前最好的 <a href='http://higherorderfun.com/blog/2012/05/20/the-guide-to-implementing-2d-platformers/'>平台游戏指南</a>，高阶的。 </li>
+<li>游戏“N”的作者撰写的一篇<a href='http://www.metanetsoftware.com/technique/tutorialA.html'> 很棒的教程</a>。
+</li>
+</ul>
+
+你可以在留言区留言以让我知道你的进度！
+
+第1部分完结
+
+[caption id="attachment_16502" align="alignright" width="250" caption="Learn how to make a game like Super Mario!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/KuwalioPart2.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/KuwalioPart2-250x207.png" alt="Learn how to make a game like Super Mario!" title="Learn how to make a game like Super Mario!" width="250" height="207" class="size-thumbnail wp-image-16502" /></a>[/caption]
+
+<i>This is a blog post by iOS Tutorial Team member <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>, an indie game developer who runs the <a href="http://indieambitions.com/">Indie Ambitions</a> blog.  Check out his latest app - <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+<i>这是一篇IOS教程组的成员 <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>发布的教程, 他是一位独立游戏开发者，经营着<a href="http://indieambitions.com/">Indie Ambitions</a> 博客。去看看他最新的app吧<a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+
+Welcome back to our 2-part tutorial series on making a game like Super Mario!
+欢迎回到我们的两部分教程 - 如何制作一款像超级玛丽的游戏！
+
+In the <a href=“http://www.raywenderlich.com/?p=15230”>first part of the series</a>, you learned how to create a simple, tile-based physics engine that controls how the hero of your game, Koalio, moves around his world. 
+在 <a href=“http://www.raywenderlich.com/?p=15230”>第1部分中</a>，你学会了如何制作一个简单的，基于tile的物理引擎，使用这个引擎，你可以控制你的英雄考里奥在他的世界里有所作为。
+
+In this second and final part of the series, you'll learn how to make Koalio run and jump – the fun part of the game! 
+在第2部分同时也是最后一部分中，你将学到如何控制考里奥跑和跳，这部分很有趣哟！
+
+You’ll also add collisions with those scary spikey floors, handle winning and losing, and of course add some gratuitous sound effects and music!
+你还将加入一些具有碰撞的危险的地刺，处理胜利和失败，并毫无例外的加入一些免费的音效和音乐。
+
+This second part is WAY simpler (and shorter) than the first tutorial, a reward for the hard work you put in last time! So turn your coding mojo on, and enjoy!<!--more--><h2>Moving Koalio Around</h2>
+第2部分和第一部分相比较而言，简单多了，也短多了，这可是在第1部分中艰苦努力的奖励哦！重拾你的代码，享受之后的过程吧！<!--more--><h2>移动考里奥 Moving Koalio Around</h2>
+
+The controls you’re going to implement are very simple. There will be forward and jump controls only — much like 1-bit Ninja. If you touch the left half of the screen, Koalio will run forward. Touching the right half of the screen will make Koalio jump.
+你将要实现的控制系统相当简单。只有前进和跳跃，很像 1-bit Ninja。如果你点击屏幕的左半边，考里奥会前进，如果点击屏幕的右半边，考里奥就跳跃。
+
+You heard me right - Koalio can't move backwards!  True Koalas don't back down from danger.
+你没有听错，考里奥不能往回移动！真正的考拉是不会从危险中后退的。
+
+Since Koalio will be moved forward by the user, rather than by the GameLevelLayer, you need some values that you can check in the Player class to update his forward velocity. Add the following properties to the Player class (don't forget to synthesize!):
+因为考里奥不是由GameLevelLayer，而是由玩家控制向前移动的，你需要在Player类中实时更新它向前的素素。在Player类中加入如下属性（不要忘记synthesize部分！）：
+
+In <em>Player.h</em>:
+在<em>Player.h</em>中：
+
+<pre lang="objc">
+@property (nonatomic, assign) BOOL forwardMarch;
+@property (nonatomic, assign) BOOL mightAsWellJump;
+</pre>
+
+In <em>Player.m</em>:
+在<em>Player.m</em>中：
+
+<pre lang="objc">
+@synthesize forwardMarch = _forwardMarch, mightAsWellJump = _mightAsWellJump;
+</pre>
+
+Now add the following touch-handling methods to the <em>GameLevelLayer</em>:
+现在在<em>GameLevelLayer</em>中加入如下处理触摸事件的代码：
+
+<pre lang="objc">
+- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {  
+  for (UITouch *t in touches) {
+    CGPoint touchLocation = [self convertTouchToNodeSpace:t];
+    if (touchLocation.x > 240) {
+      player.mightAsWellJump = YES;
+    } else {
+      player.forwardMarch = YES;
+    }
+  }
+}
+
+- (void)ccTouchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+  for (UITouch *t in touches) {
+    
+    CGPoint touchLocation = [self convertTouchToNodeSpace:t];
+    
+    //get previous touch and convert it to node space
+    CGPoint previousTouchLocation = [t previousLocationInView:[t view]];
+    CGSize screenSize = [[CCDirector sharedDirector] winSize];
+    previousTouchLocation = ccp(previousTouchLocation.x, screenSize.height - previousTouchLocation.y);
+    
+    if (touchLocation.x > 240 && previousTouchLocation.x <= 240) {
+      player.forwardMarch = NO;
+      player.mightAsWellJump = YES;
+    } else if (previousTouchLocation.x > 240 && touchLocation.x <=240) {
+      player.forwardMarch = YES;
+      player.mightAsWellJump = NO;
+    }
+  }
+}
+
+- (void)ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+  
+  for (UITouch *t in touches) {
+    CGPoint touchLocation = [self convertTouchToNodeSpace:t];
+    if (touchLocation.x < 240) {
+      player.forwardMarch = NO;
+    } else {
+      player.mightAsWellJump = NO;
+    }
+  }
+}
+</pre>
+
+These changes should be pretty straightforward. If the user creates a touch event that has an X-coordinate of less than 240 (half the screen), you turn on the forwardMarch boolean for the player. Otherwise (if the location of the touch event is greater than 240), simply turn on the mightAsWellJump boolean.
+这些内容相当直接。如果玩家点击坐标的x值小于240（一半的屏幕），你就把player中的forwardMarch变量置为YES。否则（点击坐标的x值大于240）就把mightAsWellJump变量置为YES。
+
+touchesMoved is a little more complicated, because you only want to flip the boolean values above if the touch crosses mid screen, so you have to calculate the previousTouch location as well. Other than that, you're just checking to see which direction the touch crosses and turning the appropriate boolean on or off. Finally, if the user stops touching the one side of the screen or the other, you want to turn the appropriate boolean value off. 
+touchesMoved稍微有一点复杂，因为你只想在触摸点穿越屏幕中心时才切换那些boolean值，所以你不得不把previousTouch坐标也计算在内。除了这点之外，你仅仅需要检测触摸点划过的方向来相应的设置那些boolean值。最后，如果玩家停止触摸屏幕的任何一侧时，你需要把相应的boolean值置为NO。
+
+There are a few changes that need to be made to detect touches. First, add this line to <em>init</em>:
+为了能够相应触摸事件，还需要做一些工作。首先，在<em>init</em>中加入这行：
+
+<pre lang="objc">
+	self.isTouchEnabled = YES;
+</pre>
+
+You’ll need to turn on multitouch in <em>AppDelegate.m</em> (so as to detect a touch that directs the player to move forward and to jump at the same time). Add the following line before the <em>[director_ pushScene: [GameLevelLayer scene]];</em> line:
+然后，你还需要在<em>AppDelegate.m</em>打开多点触摸（为了检测玩家同时发出跑和跳的指令）。在<em>[director_ pushScene: [GameLevelLayer scene]];</em>之前加入以下内容：
+
+<pre lang="objc">
+	[glView setMultipleTouchEnabled:YES];
+</pre>
+
+Now that you are passing the touches through to your player class booleans, you can add some code to the update method so that Koalio can move. Start with the forward movement. Change the update method in <em>Player.m</em> to the following:
+既然你把触摸点传递到了你的Player类中的一系列boolean变量中了，你便可以在update方法中加入一些代码，来让考里奥移动。首先先考虑前向移动，对<em>Player.m</em>中的update方法作如下修改：
+
+<pre lang="objc">
+-(void)update:(ccTime)dt {
+    CGPoint gravity = ccp(0.0, -450.0);
+    CGPoint gravityStep = ccpMult(gravity, dt);
+    
+    CGPoint forwardMove = ccp(800.0, 0.0);
+    CGPoint forwardStep = ccpMult(forwardMove, dt); //1
+    
+    self.velocity = ccpAdd(self.velocity, gravityStep);
+    self.velocity = ccp(self.velocity.x * 0.90, self.velocity.y); //2
+    
+    if (self.forwardMarch) {
+        self.velocity = ccpAdd(self.velocity, forwardStep);
+    } //3
+    
+    CGPoint minMovement = ccp(0.0, -450.0);
+    CGPoint maxMovement = ccp(120.0, 250.0);
+    self.velocity = ccpClamp(self.velocity, minMovement, maxMovement); //4
+    
+    CGPoint stepVelocity = ccpMult(self.velocity, dt);
+    
+    self.desiredPosition = ccpAdd(self.position, stepVelocity);
+}
+</pre>
+
+Let’s break this down section-by-section:
+让我们一部分一部分解读它们：
+
+<ol>
+
+<li>You add a forwardMove force that will come into play while the user is touching the screen. As a reminder, you are scaling that force (800 points per second) to the appropriate amount for the current frame's timestep (dt) in order to have consistent acceleration.</li> 
+当玩家点击屏幕时，你需要增加了一个向前的力。和以往一样，你把这个力根据时间戳（dt）缩减，这样就获得了平稳的加速。
+
+<li>Here you apply a damping force to the horizontal velocity to simulate friction. You're applying physics here just as you did with gravity. In each frame, additional movement force will be applied.
+<li>这里你在水平方向上增加阻尼，以模拟摩擦力。你操作物理的方式跟之前的重力没什么两样。在每一帧中，向前的力都会被计算。
+
+When the force is removed, you want the player to come to a stop, but not immediately. Here you apply a 0.90 damping; in other words, reducing the overall horizontal force by two percent each frame.</li>
+当力被撤销时，你想要player停止，但不是立刻停止。这里你施加一个0.90的阻尼；换句话说，每帧
+里水平方向的速度减少百分之十。</li>
+
+<li>In section three, you check for the boolean (meaning that the screen is being touched) and add the forwardMove force if appropriate.</li>
+<li>在第3部分中，你检测是否触摸屏幕的变量，并根据情况施加forwardMove force。</li>
+
+<li>In section four, you apply the clamping. This limits the player's maximum movement speed in both the horizontal (running top speed), upward (jumping speed) and downward (falling) directions.
+<li>在第4部分中，你应用了clamping。它限制了player最大的移动速度，包括水平方向的（跑的极限速度），向上的（跳跃速度）和向下的（下落速度）。
+
+These damping and clamping values put limits on how quickly things happen in the game. It also prevents the buildup of velocity problem that you experienced in the first part of the tutorial.
+这些damping和clamping值用来对游戏中事件发生频率设置上限。它还防止了你之前在第1部分中遇到过的速率过大的问题。
+
+You want the player to have a maximum speed and to reach that speed within a second or less. This way your player's movements still feel natural, and provide a level of control. The maximum force that you'll allow is a positive 120 value, which would be one quarter the screen width per second.
+你希望player需要大概1秒才到达最大的速度。这样做也能让player的移动更自然，并且可控。你允许的最大的力是正120，大概是1秒钟四分之一屏幕的距离。
+
+If you want to increase the rate of acceleration of your player, increase the forwardMove variable and the damping value 0.90 respectively. If you want to increase your player’s maximum speed, simply increase the 120 value. You're also capping the jumping velocity at 250 and falling velocity at 450.</li>
+如果你想增加player的加速度，那么可以适当增加forwardMove，也可以适当改变目前为0.9的damping值。如果你想增加player的最大速度，那只需要简单地增加120那个值就行了。另外你也对跳跃250和下坠450的速度做了封顶，你同样也可以修改它们。</li>
+
+</ol>
+
+Build and run. You should be able to make Koalio run forward by pressing the left half of the screen.  Watch that Koala go!
+编译并运行。你将能够通过点击屏幕的左半边来让考里奥跑起来。看看它跑的样子多潇洒！
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-koalio-runningb" rel="attachment wp-att-15248"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Koalio-Runningb.png" alt="" title="Koalio Running" width="480" height="320" class="aligncenter size-full wp-image-15248" /></a>
+
+Next, you'll make him jump!
+接下来，你将要赋予它跳跃的能力！
+
+<h2>你的Mac将让它跳起来！ Your Mac Will Make Him... Jump, Jump!</h2> 
+
+The jump is the distinguishing feature of the platformer, and the element that leads to most of the fun. You want to make sure that the jumping movement is fluid and feels right. In this tutorial, you'll implement the jump algorithm used in Sonic the Hedgehog, as described <a href='http://info.sonicretro.org/Sonic_Physics_Guide'>here.</a> 
+跳跃是平台游戏最主要的特色，也是此类游戏最大的乐趣来源。你肯定想把跳跃做的很流畅并且感觉很对。在本篇教学中，你将使用和刺猬索尼克同样的跳跃算法，在<a href='http://info.sonicretro.org/Sonic_Physics_Guide'>这里</a>有详细说明。
+
+Add the following to the <em>update</em> method before the <em>if (self.forwardMarch) {</em> line:
+在<em>update</em>方法中<em>if (self.forwardMarch) {</em>行之前加入以下内容：
+
+<pre lang="objc">
+CGPoint jumpForce = ccp(0.0, 310.0);
+
+if (self.mightAsWellJump && self.onGround) {
+    self.velocity = ccpAdd(self.velocity, jumpForce);
+} 
+</pre>
+
+If you stop here (go ahead and build and run if you like), you'll get old school Atari jumping. Every jump the will be same height. You apply a force to the player, and wait until gravity pulls him back down again. 
+如果你就到此为止的话（你可以编译并运行看看效果），你将会得到老学校里雅达利游戏机中的跳跃。每一次的跳跃都是同样的高度。你对player施加了一个力，并等待重力把它重新拉回来。
+
+In modern platform games, users have much more control over the jumping. You want controllable, completely unrealistic (but fun as hell) Mario Bros/Sonic jumping abilities where you can change directions mid air and even stop a jump short. 
+在现代的平台游戏中，玩家可以在对象跳跃的过程中对其进行操作。你想要可控的，完全不真实（但是乐趣十足）的马里奥兄弟/刺猬索尼克中使用的跳跃，在跳跃到半空中的时候还可以改变方向，甚至终止一次跳跃。
+
+To accomplish this, you’ll need to add the variable component. There are a couple ways to do it, but you'll do it the Sonic way. Set the jump algorithm to reduce the force of the upward thrust if the user stops pressing the screen. Replace the above code with the following:
+为了完成这个，你需要添加变量组件。有很多方法可以使用，不过你将会使用索尼克中的方法。对跳跃算法做一些修改，当玩家不再点击屏幕右侧时我们减弱向上的推力。把以上代码替换为一下内容：
+
+<pre lang="objc">
+  CGPoint jumpForce = ccp(0.0, 310.0);
+  float jumpCutoff = 150.0;
+  
+  if (self.mightAsWellJump && self.onGround) {
+    self.velocity = ccpAdd(self.velocity, jumpForce);
+  } else if (!self.mightAsWellJump && self.velocity.y > jumpCutoff) {
+    self.velocity = ccp(self.velocity.x, jumpCutoff);
+  }
+</pre>
+  
+This code performs one extra step. In the event that the user stops pressing the screen (self.mightAsWellJump will become NO), it checks the upward velocity of the player. If that value is greater than the cutoff, it will set the velocity to the cutoff value. 
+这些代码多做了一步。当玩家不再点击屏幕右侧时（self.mightAsWellJump为NO时），它检测player向上的速度，如果这个速度大于cutoff（150.0），那么就把player的速度设置为cutoff。
+
+This effectively reduces the jump. This way, you'll always get a minimum jump (at least as high as the jumpCutoff), but if you continue to hold, you'll get the full jump force available.
+这样做能显著地减弱跳跃。通过这种方法，你总是可以得到一个最小的跳跃（至少和jumpCutoff一样高），但如果你持续按住屏幕，你将会得到一个完全的跳跃。
+
+Build and run now. This is starting to feel like a real game! From this point on, you'll probably need to test on a real device (if you haven't been already) in order to use both “buttons.”
+编译并运行。现在它看起来像个游戏了！从目前开始，你可能需要在真机上测试了（如果你之前没这样做过），这样你就可以同时触发两个“按钮”了（屏幕左和右）。
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-running-and-jumpingb" rel="attachment wp-att-15247"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-running-and-jumpingb.png" alt="" title="Running and Jumping Koalio" width="480" height="320" class="aligncenter size-full wp-image-15247" /></a>
+  
+You got Koalio running and jumping, but eventually he’ll run out of screen real estate. Time to fix that! 
+你的考里奥可以跑和跳了，但是最终他会跑出屏幕。是时候修正这个问题了！
+
+Add this snippet of code from the <a href="/?p=1163">tile-based game tutorial</a> to <em>GameLevelLayer.m</em>: 
+把<a href="/?p=1163">基于tile的游戏教程</a>中的以下代码片段加入到<em>GameLevelLayer.m</em>中：
+
+<pre lang="objc">
+-(void)setViewpointCenter:(CGPoint) position {
+  
+  CGSize winSize = [[CCDirector sharedDirector] winSize];
+  
+  int x = MAX(position.x, winSize.width / 2);
+  int y = MAX(position.y, winSize.height / 2);
+  x = MIN(x, (map.mapSize.width * map.tileSize.width) 
+      - winSize.width / 2);
+  y = MIN(y, (map.mapSize.height * map.tileSize.height) 
+      - winSize.height/2);
+  CGPoint actualPosition = ccp(x, y);
+  
+  CGPoint centerOfView = ccp(winSize.width/2, winSize.height/2);
+  CGPoint viewPoint = ccpSub(centerOfView, actualPosition);
+  map.position = viewPoint; 
+}
+</pre>
+
+This code clamps the screen to the position of the player. In the case where Koalio is at the edge of the level, it stops centering on him, and clamps the edge of the level to the edge of the screen. 
+这部分代码的作用是使player不会移动出屏幕。当考里奥在关卡边缘时，屏幕就不在追踪它了，并把关卡的边缘定位到屏幕的边缘。
+
+There’s one modification here from the original post. In the last line, the map is moved, instead of the layer. This is possible because the player is a child of the map, so when the player moves right, the map moves left and the player remains in the center of the screen. 
+这里对原版本的代码稍作了修改。在最后一行，我们用map移动代替了原先的layer移动。因为player是map的child，所以当player向右移动时，map向左移动，player一直会保持在屏幕的中心位置。
+
+The touch methods rely on a position within the layer as well. If you moved your layer around instead, you would need to take those calculations into account. This is easier.
+还有一点，touch方法需要layer的位置来做坐标转换。如果你移动了layer，你还需要另外把这些坐标计算进来。所以说我们的方法更简单。
+
+For a complete explanation, refer to the <a href="/?p=1163">tile-based game tutorial</a>.
+想要完整的解释，请参考<a href="/?p=1163">基于tile的游戏教程</a>。
+
+You need to add that call to the <em>update</em> method:
+你需要在<em>update</em>方法中添加如下内容：
+
+<pre lang="objc">
+	[self setViewpointCenter:player.position];
+</pre>
+
+Build and run now. You can navigate Koalio through the entire level!
+编译并运行。你可以控制考里奥穿梭在整个关卡中了！
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-running-and-jumping" rel="attachment wp-att-15238"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-running-and-jumping-480x320.png" alt="" title="Running through Map" width="480" height="320" class="aligncenter size-medium wp-image-15238" /></a>
+
+<h2>失败之痛 The Agony of Defeat</h2>
+
+Now you can move on to handling the winning and losing game scenarios. 
+现在你可以腾出手来处理胜利和失败的逻辑了。
+
+Tackle the losing scenario first. There are hazards placed in this level. If the player collides with a hazard, the game will end. 
+先来处理失败的逻辑。关卡中有一些危险物。如果player碰到了它们，游戏就结束了。
+
+Since these are fixed tiles, you need to handle them like you handled the wall collisions in the previous tutorial. However, instead of resolving collisions, you'll end the game. You're in the home stretch now — there’s only a few things left to do!
+因为它们是固定的tile，你需要像处理wall的碰撞一样处理它们。不同的是，你需要在碰撞发生时结束，而不是处理碰撞。到此为止，你已经在离最终完成不远了，还有一些剩余事项需要处理。
+
+Add the following method to <em>GameLevelLayer.m</em>:
+在<em>GameLevelLayer.m</em>中加入如下方法：
+
+<pre lang="objc">
+-(void)handleHazardCollisions:(Player *)p {
+  NSArray *tiles = [self getSurroundingTilesAtPosition:p.position forLayer:hazards ];
+  for (NSDictionary *dic in tiles) {
+    CGRect tileRect = CGRectMake([[dic objectForKey:@"x"] floatValue], [[dic objectForKey:@"y"] floatValue], map.tileSize.width, map.tileSize.height);
+    CGRect pRect = [p collisionBoundingBox];
+    
+    if ([[dic objectForKey:@"gid"] intValue] && CGRectIntersectsRect(pRect, tileRect)) {
+      [self gameOver:0];
+    }
+  }
+}
+</pre>
+
+All of this code should look familiar, since it's copied and pasted from the checkAndResolveCollisions method. The only method that's new is gameOver. This call takes one parameter: 0 if the player has lost, 1 if the player has won.
+以上这些代码看起来很眼熟，因为它是从checkAndResolveCollisions方法中拷贝过来的。唯一的一个新的方法是gameOver。此方法有一个参数，0代表player失败，1代表player胜利。
+
+You're using the hazards layer instead of the walls layer, so you'll need to set that up in the @interface at the beginning of the implementation file as an instance variable <em>CCTMXLayer *hazards;</em>. Set it up in <em>init</em> (just after the walls setup line):
+由于你使用了hazards层代替了wall层，你需要在文件一开头的@interface块中加入一个成员变量<em>CCTMXLayer *hazards;</em>，在<em>init</em>中初始化它（在初始化wall之后的一行）：
+
+<pre lang="objc">
+	hazards = [map layerNamed:@"hazards"];
+</pre>
+
+One last thing you need to do is call the method in your <em>update</em> method:
+最后一件事是你需要在<em>update</em>方法中调用这个方法：
+
+<pre lang="objc">
+-(void)update:(ccTime)dt {
+  [player update:dt];
+  
+  [self handleHazardCollisions:player];
+  [self checkForAndResolveCollisions:player];
+  [self setViewpointCenter:player.position];
+}
+</pre>
+
+Now, if the player runs into any tile from the hazards layer, you'll call gameOver. That method is just going to throw up a restart button with a message that you've lost (or won, as the case may be):
+现在，如果player跑到了一个危险物层的tile上，你就会调用gameOver。那个方法会弹出失败信息和一个重新开始的按钮（当然也可以是胜利的）：
+
+<pre lang="objc">
+-(void)gameOver:(BOOL)won {
+	gameOver = YES;
+	NSString *gameText;
+	
+	if (won) {
+		gameText = @"You Won!";
+	} else {
+		gameText = @"You have Died!";
+	}
+	
+  CCLabelTTF *diedLabel = [[CCLabelTTF alloc] initWithString:gameText fontName:@"Marker Felt" fontSize:40];
+  diedLabel.position = ccp(240, 200);
+  CCMoveBy *slideIn = [[CCMoveBy alloc] initWithDuration:1.0 position:ccp(0, 250)];
+  CCMenuItemImage *replay = [[CCMenuItemImage alloc] initWithNormalImage:@"replay.png" selectedImage:@"replay.png" disabledImage:@"replay.png" block:^(id sender) {
+    [[CCDirector sharedDirector] replaceScene:[GameLevelLayer scene]];
+  }];
+  
+  NSArray *menuItems = [NSArray arrayWithObject:replay];
+  CCMenu *menu = [[CCMenu alloc] initWithArray:menuItems];
+  menu.position = ccp(240, -100);
+  
+  [self addChild:menu];
+  [self addChild:diedLabel];
+  
+  [menu runAction:slideIn];
+}
+</pre>
+
+The first line sets a new boolean called gameOver. You use this value to stop the update method from allowing the player to continue to move and interact with the level. You’ll see that in just a minute. 
+第一行初始化了一个新的叫做gameOver的boolean变量。你使用它来停止update方法，这样可以组织player继续移动并和关卡产生互动。你马上就会遇到使用它的地方。
+
+Next, the code creates a label, and assigns a string based on whether the user has won or lost. It also creates a button that allows the user to start over. 
+接下来的代码创建了一个label，并根据玩家胜利或失败为赋值一个字符串。它还创建了一个重新开始的按钮。
+
+These block-based methods with the CCMenu objects are really nice to use. In this case you're just replacing the scene with a new copy of itself in order to start the level over. You also use a CCAction, CCMoveBy, to animate the replay button into place, just for fun.
+这些CCMenu里基于block的方法真心好用。在此处，我们使用CCDirector的replaceScene方法复制一个同样的场景来重新开始关卡。你还使用了CCAction，CCMoveBy来让replay按钮动态进入场景，没别的目的，只是为了好玩儿。
+
+The only other thing you need to do is add the gameOver boolean to the GameLevelLayer class. This can just be an instance variable, since you won't need to access it outside of the calls. Add it to the @interface at the beginning of the <em>GameLevelLayer.m</em>, along with the variable we need to track the walls layer:
+最后需要做的是把gameOver变量加入到GameLevelLayer类中。把它作为成员变量就可以了，因为你并不需要从其他类访问它。在<em>GameLevelLayer.m</em>一开头的@interface块中加入以下内容：
+
+<pre lang="objc">
+CCTMXLayer *hazards;
+BOOL gameOver;
+</pre>
+
+Edit the <em>update</em> method as follows:
+并如下修改<em>update</em>方法：
+
+<pre lang="objc">
+-(void)update:(ccTime)dt {
+  if (gameOver) {
+    return;
+  }
+  [player update:dt];
+  [self checkForAndResolveCollisions:player];
+  [self handleHazardCollisions:player];
+  [self setViewpointCenter:player.position];
+}
+</pre>
+
+Go ahead and build and run now, and find some spikes to jump on! You should see something like this:
+再次编译并运行，找到一些地刺跳上去！你会发现如下所示的场景：
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-dying-on-spikes" rel="attachment wp-att-15237"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-dying-on-spikes-480x320.png" alt="" title="Spikes" width="480" height="320" class="aligncenter size-medium wp-image-15237" /></a>
+
+Don't repeat this too much though, or the animal protection agency might come after you!  :]
+这个步骤别重复太多次，否则动物保护组织会找上你的！ :]
+
+<h2>地狱深处 The Pit of Doom</h2>
+
+Now for the scenario where Koalio falls down a hole. In this case, you'll end the game. 
+现在来处理当考里奥掉落的情况。当发生这种情况时，你将结束游戏。
+
+As the code is now, it will crash. (Horrors!) The code throws a TMXLayer: invalid position error. That's where you need to intervene. This occurs in the getSurroundingTilesAtPosition: method when you call tileGIDAt:. 
+目前的代码逻辑是当发生掉落时，程序就挂掉了，错误是TMXLayer: invalid position error。这里需要你解决一下。这个情况发生的是在getSurroundingTilesAtPosition:方法中调用tileGIDAt:的位置。
+
+Add the following code in <em>GameLevelLayer.m</em>, in the <em>getSurroundingTilesAtPosition:</em> method, before the <em>tileGIDat:</em> line;
+在<em>GameLevelLayer.m</em>中的<em>getSurroundingTilesAtPosition:</em>方法里，<em>tileGIDat:</em>行之前加入以下代码：
+
+<pre lang="objc">
+if (tilePos.y > (map.mapSize.height - 1)) {
+    //fallen in a hole
+    [self gameOver:0];
+    return nil;
+} 
+</pre>
+
+This code will run the gameOver routine and abandon the process of building the tile array. You'll also need to abandon the process of looping through the tiles in  <em>checkForAndResolveCollisions</em>. After the <em>NSArray *tiles = [self getSurroundingTilesAtPosition:p.position forLayer:walls ];</em> line, add this block of code:
+这些代码会执行gameOver并停止继续构建tile数组。你还需要在<em>checkForAndResolveCollisions</em>中阻止循环遍历tile的过程。在<em>NSArray *tiles = [self getSurroundingTilesAtPosition:p.position forLayer:walls ];</em>行之后，加入以下代码块儿：
+
+<pre lang="objc">
+  if (gameOver) {
+    return;
+  }
+</pre>
+
+You'll abandon that loop as well and avoid any crashing that might result from trying to run the routine with an incomplete array. 
+你将会中止循环，以此来避免试图遍历不完整的数组导致的程序崩溃。
+
+Build and run now. Find a pit to jump into, and . . . no crashing! The game ends as it should.
+编译并运行。找一个坑掉进去，看，现在不会挂了！游戏正常的进入gameover界面了。
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-dying-in-pit" rel="attachment wp-att-15236"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-dying-in-pit-480x320.png" alt="" title="Pit Death" width="480" height="320" class="aligncenter size-medium wp-image-15236" /></a>
+
+<h2>胜利！ Winning!</h2>
+
+Now, handle the case where your hero Koalio wins the game! 
+现在来处理当英雄考里奥赢得游戏的情景！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/06/Koala-Winning.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/Koala-Winning.jpg" alt="" title="Koala Winning" width="400" height="400" class="alignnone size-full wp-image-15677" /></a>
+
+All you're going to do is monitor the X-position of the player and trigger the “win” condition when he crosses the threshold (which will be at the end of the level). This level is about 3400 pixels wide. You're going to trigger a “win” condition when the player gets to pixel 3130. 
+所有需要做的就是检测player的X坐标是否触发了胜利条件，当它穿过关卡最右端时，就胜利了。目前的关卡大约有3400像素宽。当player到达3130像素的时候，你就认为游戏胜利了。
+
+Add a new method in <em>GameLevelLayer.m</em> as follows:
+在<em>GameLevelLayer.m</em>中加入以下新方法：
+
+<pre lang="objc">
+-(void)checkForWin {
+  if (player.position.x > 3130.0) {
+    [self gameOver:1];
+  }
+}
+</pre>
+
+<pre lang="objc">
+-(void)update:(ccTime)dt {
+  [player update:dt];
+  
+  [self handleHazardCollisions:player];
+  [self checkForWin];
+  [self checkForAndResolveCollisions:player];
+  [self setViewpointCenter:player.position];
+}
+</pre>
+
+Build and run now. Navigate your hero Koalio through the level, and if you can make it to the end, you'll have this message:
+编译并运行。控制你的英雄考里奥穿越整个关卡，如果你能让它到达结束点，你将会达到这些信息：
+
+<a href="http://www.raywenderlich.com/15230/how-to-make-a-platform-game-like-super-mario-brothers-part-1/ss-winning" rel="attachment wp-att-15235"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/06/SS-Winning-480x320.png" alt="" title="Winning" width="480" height="320" class="aligncenter size-medium wp-image-15235" /></a>
+
+<h2>免费的音乐和音效 Gratuitous Music and Sound Effects</h2>
+
+You know what time it is - time for gratuitous music and sound effects!
+是时候加些免费的音乐和音效了！
+
+Let'd dive right into it.  Add this at the top of <em>GameLevelLayer.m</em> and <em>Player.m</em>:
+我们这就开始。在<em>GameLevelLayer.m</em> 和 <em>Player.m</em>的开头加入以下内容：
+
+<pre lang="objc">
+#import "SimpleAudioEngine.h"
+</pre>
+
+Then add this line to the <em>init</em> method of the <em>GameLevelLayer</em>.
+然后在<em>GameLevelLayer</em>中的<em>init</em>方法加入下边一行代码：
+
+<pre lang="objc">
+	[[SimpleAudioEngine sharedEngine] playBackgroundMusic:@"level1.mp3"];
+</pre>
+
+This gives you some nice gaming music. Thanks to Kevin Macleod of <a href=“incompetech.com”>Incompetech.com</a> for composing the music (<a href='http://incompetech.com/m/c/royalty-free/index.html?keywords=USUAN1200047'>Brittle Reel</a>). He has tons of CC licensed music there!
+这个能带来一些不错的游戏音乐。感谢<a href=“incompetech.com”>Incompetech.com</a>的Kevin Macleod创做的音乐(<a href='http://incompetech.com/m/c/royalty-free/index.html?keywords=USUAN1200047'>Brittle Reel</a>)。他有很多的CC licensed（非商业使用）的音乐！
+
+Now add a jumping sound. Go to the <em>Player.m</em> and add the following to the <em>update</em> method inside the jumping code:
+现在来加入一个跳跃的音效。在<em>Player.m</em>加入以下内容到<em>update</em>方法中跳跃的部分：
+
+<pre lang="objc">
+if (self.mightAsWellJump && self.onGround) {
+    self.velocity = ccpAdd(self.velocity, jumpForce);
+    [[SimpleAudioEngine sharedEngine] playEffect:@"jump.wav"];
+} else if (!self.mightAsWellJump && self.velocity.y > jumpCutoff) {
+    self.velocity = ccp(self.velocity.x, jumpCutoff);
+}
+</pre>
+
+Finally, play a sound when Koalio falls down a hole or when he hits a hazard. Do that in the <em>gameOver</em> method in <em>GameLevelLayer.m</em>:
+最后，当考里奥掉进一个坑或者碰到危险物时，播放一个音效。在<em>GameLevelLayer.m</em>中的<em>gameOver</em>方法中做这件事：
+
+<pre lang="objc">
+-(void)gameOver {
+  gameOver = YES;
+  [[SimpleAudioEngine sharedEngine] playEffect:@"hurt.wav"];  
+  CCLabelTTF *diedLabel = [[CCLabelTTF alloc] initWithString:@"You have Died!" fontName:@"Marker Felt" fontSize:40];
+  diedLabel.position = ccp(240, 200);
+</pre>
+
+Build and run, and enjoy your groovy new tunes.
+编译并运行，享受属于你的美妙的旋律吧。
+
+And, that's it. You've written a platformer. You. Are. Awesome!
+到这里就全部结束了，你已经完成了一个平台游戏。你.真的.很棒！
+
+<h2>何去何从？ Where to Go From Here?</h2>
+
+Here's the <a href="http://www.raywenderlich.com/downloads/SuperKoalioFinal3.zip">final project file</a> with all of the code from the tutorial. 
+这里是<a href="http://www.raywenderlich.com/downloads/SuperKoalioFinal3.zip">最终工程的源代码</a>下载地址。
+
+There are a lot more things that could have been covered: everything from enemy collisions and AI, to enhanced movement abilities (wall slide, double jump, etc.), to level design guidelines. 
+其实还有很多内容没有但是可以被包含进来的：从敌人的碰撞和AI，到移动能力的加强（爬墙，双跳，等等），再到关卡设计指导。
+
+And speaking of that... great news about that!
+说到这个，有个好消息给你！
+
+<h2>平台游戏Starter Kit</h2>
+
+I'm happy to announce that all of this and more will be included in the upcoming Platformer Game Starter Kit!  Here's a quick video showing you the game you'll make in the Starter Kit:
+我非常高兴地宣布所有以上这些内容甚至更多的内容都会被包含进即将到来的平台游戏Starter Kit!这里有一个关于它的预览视频：
+
+<iframe width="640" height="360" src="http://www.youtube.com/embed/ny1gKW9GHCA?rel=0" frameborder="0" allowfullscreen></iframe>
+
+Here's what you'll learn in the Platformer Game Starter Kit:
+以下这些是你能从这个Starter Kit学到的知识点：
+
+<ul>
+    <li>How to manage and load multiple levels</li>
+	<li>如何管理和读取多个关卡</li>
+    <li>How to make a scrollable, unlockable level selection screen</li>
+	<li>如何制作一个可滑动的，带解锁功能的选关界面</li>
+    <li>How to integrate UIKit Storyboards with Cocos2D</li>  
+	<li>如何在Cocos2D中集成UIKit Storyboards</li> 
+    <li>How to efficiently use sprite sheets, animations, tilesets, and work with pixel art!</li>
+	<li>如何高效的使用sprite sheets， animations， tilesets，并使用像素图片！</li>
+    <li>How to create a state machine to handle character/enemy animations and behaviors</li>
+	<li>如何创建一个状态机来处理角色/敌人的动画和行为</li>
+    <li>More about how to make amazing and fun tile-based physics engines!</li>
+	<li>更多的关于如何制作令人惊奇和游戏的基于tile的物理引擎！</li>
+    <li>How to create an on-screen joystick and HUD</li>
+	<li>如何创建一个在屏幕之上的虚拟手柄和HUD</li>
+    <li>How to add iCade support</li>
+	<li>如何添加iCade支持</li>
+    <li>Level design for platformers</li>
+	<li>平台游戏的关卡设计</li>
+    <li>How to build Enemy AI and dynamic behaviors.</li>
+	<li>如何构建敌人的AI和动态行为。</li>
+    <li>How to add an EPIC Boss fight!</li>
+	<li>如何添加一个EPIC Boss（隐藏boss）战斗！</li>
+    <li>Interviews with the developers of several top iOS platformer games with tips and tricks</li>
+	<li>数个顶尖的IOS平台游戏开发者的采访，分享经验和技巧</li>
+    <li>. . . and lots, lots more!</li>
+	<li>. . . 还有很多，很多！</li>
+</ul>
+
+If you're interested in the Platformer Game Starter Kit, make sure you're signed up for <a href="/?page_id=4275">Ray's monthly newsletter</a> - we'll announce it there when it comes out!  :]
+如果你对平台游戏Starter Kit感兴趣，请确保你已经订阅了<a href="/?page_id=4275">Ray's monthly newsletter</a>，我将会在那里发布有关它的消息！ :]
+
+In the meantime, don’t forget the resources recommended at the end of <a href=“http://www.raywenderlich.com/?p=15230”>Part 1</a> of this tutorial.
+同时，不要忘记在<a href=“http://www.raywenderlich.com/?p=15230”>第1部分</a>中末尾推荐的那些资源。
+
+I hope you enjoyed getting your physics on and are more inspired than ever about building your own platformer!
+我希望你享受制作你自己的物理引擎的过程并制作你自己的平台游戏！
+
+<img src="http://www.raywenderlich.com/downloads/JacobGundersen.jpg" class="photo alignleft" />
+<i>This is a blog post by iOS Tutorial Team member <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>, an indie game developer who runs the <a href="http://indieambitions.com/">Indie Ambitions</a> blog.  Check out his latest app - <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+<i>这是一篇IOS教程组的成员 <a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>发布的教程, 他是一位独立游戏开发者，经营着<a href="http://indieambitions.com/">Indie Ambitions</a> 博客。去看看他最新的app吧<a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>

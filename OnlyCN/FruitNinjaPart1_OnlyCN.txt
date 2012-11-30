@@ -1,0 +1,616 @@
+[caption id="attachment_14308" align="alignright" width="250" caption="Create a Sprite-Cutting Game with Cocos2D!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_250px.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_250px.png" alt="Create a Sprite-Cutting Game with Cocos2D!" title="Create a Sprite-Cutting Game with Cocos2D!" width="250" height="250" class="size-full wp-image-14308" /></a>[/caption]
+
+<i>本篇教程是由IOS教程组的成员<a href="/?page_id=9#allentan">Allen Tan</a>发布的，Allen是一位IOS开发者和<a href="http://whitewidget.com">White Widget</a>的创始人。</i>
+
+在本篇教程中，你将学到如何制作一个切图片的游戏，像<a href="http://www.halfbrick.com">Halfbrick Studios</a>制作的<a href="http://itunes.apple.com/us/app/fruit-ninja/id362949845?mt=8">Fruit Ninja</a>一样，我们使用的工具是强大的Cocos2D和Box2D，以及一些预先做好的工具。
+
+在大多数切东西的游戏中，当你画一条线划过一个图片精灵时，他们的做法基本上是把图片精灵转变为两个预先画好的被从中间切开的图片精灵，而并不会依照你划过的实际位置。
+
+但是本篇教程将演示一个更cool的技术。我们的水果可以被切割多次，并且它们会根据实际切割的路线动态的分割！
+
+正如你所想的，这是一种高级的技术，所以本篇教程面向的是高阶的Cocos2D和Box2D开发者。如果你刚刚接触Cocos2D和Box2D，你可以先跟随<a href="/?p=352">Cocos2D入门</a>和<a href="/?p=457">Box2D入门</a>这两篇教程，再继续本篇教程的学习。
+
+本篇教程一共分为3部分：
+<ul><li>在第1部分中，你会为游戏打基础，并学习如何创建textured polygons（纹理多边形）。</li>
+<li><a href="/?p=14393">第2部分</a>会教你如何切和分割这些textured polygons。 </li>
+<li><a href="/?p=14439">第3部分</a>会教你添加游戏性和特效并将之前的内容变成一个完整的游戏。</li></ul>
+
+特别感谢<a href="http://www.twitter.com/rickmsmo">Rick Smorawski</a>为本篇教程中的工程所做的基础性工作。他负责把<a href="http://www.emanueleferonato.com/2011/08/05/slicing-splitting-and-cutting-objects-with-box2d-part-4-using-real-graphics/">flash-based slicing demo</a>移植到了Cocos2D上，并把CCBlade和PRKit转换到了Cocos2D 2.0。 
+
+查看下面的视频，你就知道我们将要学习多么cool的新技术了！<!--more--><h2>游戏Demo</h2>
+这是一个demo视频，它会演示给你在接下来的教学中马上要做的：
+
+http://www.youtube.com/watch?v=BG4lqnFlXKk
+
+正如我之前提到的，你看到的切水果的效果动感十足。水果会根据你划的位置被切割，并且由于你可以多次的切割它们，你甚至可以把它们切成碎块儿！
+
+视频中你还能看到有一个很cool的刀光效果、一些粒子特效、游戏的逻辑和一些为游戏添彩的音效。
+
+好多的内容啊，那么，让我们开始吧！
+
+<h2>项目准备工作</h2>
+你将要在本项目中使用Cocos2D 2.X，如果你还没有它请前往<a href="http://www.cocos2d-iphone.org/download">这里</a>下载。注意你完全可以使用Cocos2D 1.X来代替Cocos2D 2.X，你可以略过本篇教学中转换PRKit和CCBlade到Cocos2.X的部分，但是请留意那些类中其他的小改动。
+
+下载完成后，双击tar文件解压，然后在终端中的以下命令安装它：
+<pre lang="shell">cd ~/Downloads/cocos2d-iphone-2.0-beta
+./install-templates.sh -f -u</pre>
+
+启动Xcode并使用iOS\cocos2d v2.x\cocos2d iOS with Box2d模板创建一个新工程，将其命名为CutCutCut。
+
+新的工程看起来应该像这样：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_projectstart.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_projectstart-480x260.png" alt="Project Start" title="Project Start" width="480" height="260" class="alignnone size-medium wp-image-14320" /></a>
+
+首当其冲的，你应该对模板生成的工程做一些清理，已让其有一个好的起点。
+
+打开<em>HelloWorldLayer.h</em>，移除以下行：
+
+<pre lang="objc">CCTexture2D *spriteTexture_;// weak ref</pre>
+
+切换到<em>HelloWorldLayer.mm</em>并做如下修改：
+
+<pre lang="objc">
+// Remove this line from the top
+#import "PhysicsSprite.h"
+
+// Replace the init method with this
+-(id) init
+{
+    if( (self=[super init])) {
+        // enable events
+        self.isTouchEnabled = YES;
+        self.isAccelerometerEnabled = YES;
+        CGSize s = [CCDirector sharedDirector].winSize;
+        
+        // init physics
+        [self initPhysics];
+        
+        [self scheduleUpdate];
+    }
+    return self;
+}
+
+// Remove these two methods
+-(void) createMenu {
+    //all content
+}
+-(void) addNewSpriteAtPosition:(CGPoint)p methods {
+    //all content
+}
+
+// Remove this line from ccTouchesEnded
+[self addNewSpriteAtPosition: location];
+</pre>
+
+到此时，你已经从HelloWorldLayer中移除了全部的PhysicsSprite（有物理特性的精灵）的引用，但你还没有从项目中删除它们的文件。由于稍后你需要从PhysicsSprite.mm中拷贝一个方法，所以我们目前先留着它。
+
+使用快捷键Command+R编译并运行你的项目，你将会看到一个被绿色边框包围的黑色屏幕：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_projectclean.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_projectclean.png" alt="Clean Slate" title="Clean Slate" width="480" height="320" class="alignnone size-full wp-image-14326" /></a>
+
+剩下的模板代码设置了Box2D的debug drawing，这一功能可以把所有Box2D物体都画在屏幕上。看到屏幕周围绿色的线了吧？它们就是使用项目默认的initPhysics方法生成的墙。
+
+浏览一下项目中其余的代码，确保你明白了所有的逻辑，它初始化了Box2D world，设置了了地面（绿色的边界），设置了debug drawing等等。
+
+<h2>资源包</h2>
+
+接下来请下载<a href="http://www.raywenderlich.com/downloads/CutCutCutResourceKit.zip">项目需要的资源</a>并解压文件。
+
+请先不要把所有东西都加入工程，其中一些文件实际上是可选的。让这个文件夹一直在手边，随着本篇教程的进行，我会指导你添加一些文件到项目中去。
+
+以下是你在这个包中能找到的：
+<ul><li>一个背景图片和一系列水果的图片，它们都是由<a href="http://www.vickiwenderlich.com/">Vicki</a>制作的，Images文件夹中还有其他的各种各样的图片。</li>
+<li>背景音乐是使用<a href="http://gomix.it/">gomix.it</a>混合制作的，它们在Sounds文件夹中。</li>
+<li>音效一部分是使用<a href="http://www.bfxr.net/">bfxr</a>制作的，另一部分是从<a href="http://www.freesound.org/home/">freesound</a>下载的，他们在Sounds文件夹中。</li>
+<li>所有的粒子系统都是由<a href="http://particledesigner.71squared.com">Particle Designer</a>制作的，它们在Particles文件夹中。</li>
+<li>一个由<a href="http://sites.fastspring.com/codeandweb/product/all?source=raywenderlich">PhysicsEditor</a>生成的PLIST文件，它包含了Fruits和Bomb类的顶点信息，在Misc文件夹中。</li>
+<li>Fruits和Bomb类，在Classes文件夹中。</li>
+<li><a href="https://github.com/asinesio/cocos2d-PRKit">PRKit</a> 和 <a href="https://github.com/hiepnd/CCBlade">CCBlade</a>，教程中你将会用到它们，在Classes文件夹中。</li>
+<li>声音资源的作者列表，在Misc文件夹中。</li></ul>
+
+<h2>使用PRKit绘制纹理多边形</h2>
+我们的目标是把精灵切成很多份。通常一个CCSprite包含一个texture（纹理）和一个无视图形真正形状的碰撞框。这个矩形的碰撞框并不适合我们的游戏，因为知道精灵的实际形状对于切割它是重要的一个步骤。
+
+你需要创建一个纹理多边形，它会完成如下功能：
+<ul><li>创建一个多边形/形状和一个相应形状的图片（纹理映射）</li>
+<li> 只显示在多边形范围之内的图片部分（纹理填充）</li></ul>
+
+Cocos2D和Box2D都没有提供可以完成此功能的类，通常来说，这需要使用一些三角变换，外加自定义的OpenGL绘制模式。
+
+听起来很困难是吗？
+
+幸运的是，所有复杂的计算和完成这些的绘制代码都已经被<a href="http://precognitiveresearch.com">Precognitive Research</a>这里的人实现了。他们基于Cocos2D创建了一个叫做PRKit的库，这个库可以处理纹理映射和纹理填充。
+
+我们来进一步研究纹理多边形，先从<a href="https://github.com/asinesio/cocos2d-PRKit">这里</a>下载PRKit，解压它，并把PRKit文件夹拖拽进你的项目中。确保"Copy items into destination group's folder"和"Create groups for any added folders"都是选中的。
+
+注意，PRKit是由Precognitive Research维护的，它以后有可能更新。为了避免引起疑惑，我们的资源包里包含的是我在做本篇教学时PRKit的版本。
+
+你的项目现在应该包含三个文件了：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_prkitadded.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_prkitadded.png" alt="PRKit Yey!" title="PRKit Yey!" width="260" height="319" class="alignnone size-full wp-image-14362" /></a>
+
+编译并运行，你将会遇到一些错误：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_prkiterror.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_prkiterror.png" alt="PRKit Needs to be Converted" title="PRKit Needs to be Converted" width="453" height="230" class="alignnone size-full wp-image-14363" /></a>
+
+这些错误是由于PRKit是针对Cocos2D 1.X版本的，1.X版本使用的是OpenGL ES 1.1，然而你目前使用的是Cocos2D 2.X，它使用的是OpenGL ES 2.0，它们两者之间存在着巨大的差异。
+
+想要修复它们，首先打开PRFilledPolygon.m并做以下修改：
+<pre lang="objc">
+// Add inside the initWithPoints: andTexture: usingTriangulator: method
+self.shaderProgram = [[CCShaderCache sharedShaderCache] programForKey:kCCShader_PositionTexture];
+
+// Replace the calculateTextureCoordinates method with this
+-(void) calculateTextureCoordinates {
+    for (int j = 0; j < areaTrianglePointCount; j++) {
+        textureCoordinates[j] = ccpMult(areaTrianglePoints[j],1.0f/texture.pixelsWide*CC_CONTENT_SCALE_FACTOR());
+        textureCoordinates[j].y = 1 - textureCoordinates[j].y;
+    }
+}
+
+// Replace the draw method with this
+-(void) draw{
+    CC_NODE_DRAW_SETUP();
+    
+    ccGLBindTexture2D( self.texture.name );
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    
+    ccGLBlendFunc( blendFunc.src, blendFunc.dst);
+    
+    ccGLEnableVertexAttribs( kCCVertexAttribFlag_Position | kCCVertexAttribFlag_TexCoords );
+    
+    glVertexAttribPointer(kCCVertexAttrib_Position, 2, GL_FLOAT, GL_FALSE, 0, areaTrianglePoints);
+    glVertexAttribPointer(kCCVertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, 0, textureCoordinates);
+    
+    glDrawArrays(GL_TRIANGLES, 0, areaTrianglePointCount);
+}
+</pre>
+
+让我们一步一步过一遍以上代码。
+
+首先，在Cocos2D中，每一个CCNode又有一个关联的OpenGL ES 2.0 shader program（着色程序）。为了画出PRFilledPolygon，你需要请求一个内建的的"Position/Texture" shader，你在init方法中指定它。
+
+接下来，你需要为纹理正确地计算每一个多边形坐标。为了达成此目标，你需要对calculateTextureCoordinates方法做两处修改：
+
+<ul><li><em>比率</em>: 因为此类会计算它自己的纹理坐标，它并不会自动处理高清模式。解决它的方法仅仅需要将texture.pixelsWide乘上CC_CONTENT_SCALE_FACTOR，CC_CONTENT_SCALE_FACTOR是一个Cocos2D提供的方便的低清高清坐标转换的系数。</li>
+<li><em>翻转Y</em>: 由于某些原因，PRFilledPolygon会把纹理绘制成倒的，所以你要把y值翻转。</li></ul>
+
+最后，draw函数里边的代码被更新为了OpenGL ES 2.0的，这一处理方式与CCSprite的draw从Cocos2D 1.X到2.X的变化雷同：
+<ul><li>首先调用CC_NODE_DRAW_SETUP()为绘制作准备。</li>
+<li>glDisableClientState() 和 glEnableClientState()方法是废弃的，不必再调用了。</li>
+<li>glVertexPointer() 和 glTexCoordPointer()都被glVertexAttribPointer()方法替代了，glVertexAttribPointer()方法使用Vertex Position 和 Texture Coordinate作为它的参数。</li>
+<li>以前需要配置glTexEnvf()用来处理多边形比纹理大的情况，以让纹理重复绘制，现在使用glTexParameteri()代替之。</li></ul>
+
+如果你对以上任意一点感到困惑的话，你可以去查阅<a href="/?p=3664">OpenGL ES 2.0 for iPhone</a>和<a href="/?p=10862">Custom Cocos2D 2.X Shaders</a>两篇教程来获取更多的背景知识。但是你并不需要产生的困惑担心过多，因为到目前为止我们所做的就是把这个类转换到能在Cocos2D 2.X使用而已 :]
+
+编译并运行，所有的PRKit的错误都消失了！
+
+是时候实际应用PRKit了。创建一个负责绘制水果的基础类PolygonSprite，它继承自PRKit中的PRFilledPolygon类。
+
+PolygonSprite在PRFilledPolygon基础上创建，引入了一个关联的Box2D body到sprite上，同时它还包含了其他为了完成水果的游戏逻辑的自定义的变量和方法。
+
+我们这就创建它。按Command+N创建一个新文件，选择iOS\cocos2d v2.x\CCNode Class template，使他成为PRFilledPolygon的子类并将其命名为<em>PolygonSprite.m</em>。
+
+切换到<em>PolygonSprite.h</em>并做如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "Box2D.h"
+#import "PRFilledPolygon.h"
+#define PTM_RATIO 32
+
+// Add inside @interface
+b2Body *_body;
+BOOL _original;
+b2Vec2 _centroid;
+
+// Add after the @interface
+@property(nonatomic,assign)b2Body *body;
+@property(nonatomic,readwrite)BOOL original;
+@property(nonatomic,readwrite)b2Vec2 centroid;
+
+// Add before the @end
+-(id)initWithTexture:(CCTexture2D*)texture body:(b2Body*)body original:(BOOL)original;
+-(id)initWithFile:(NSString*)filename body:(b2Body*)body original:(BOOL)original;
++(id)spriteWithFile:(NSString*)filename body:(b2Body*)body original:(BOOL)original;
++(id)spriteWithTexture:(CCTexture2D*)texture body:(b2Body*)body original:(BOOL)original;
+-(id)initWithWorld:(b2World*)world;
++(id)spriteWithWorld:(b2World*)world;
+-(b2Body*)createBodyForWorld:(b2World*)world position:(b2Vec2)position rotation:(float)rotation vertices:(b2Vec2*)vertices vertexCount:(int32)count density:(float)density friction:(float)friction restitution:(float)restitution;
+-(void)activateCollisions;
+-(void)deactivateCollisions;
+</pre>
+
+以上代码声明了PolygonSprite的基础变量和方法。它们是：
+
+<ul><li><em>body</em>: 这是一个关联到sprite的Box2D body。它用来模拟物理特性。</li>
+<li><em>original</em>: 完整的和被切割过的sprite都使用相同的PolygonSprite类，正因如此，这两者之间的差异性非常重要。如果此变量为YES，说明它是没被切割的，原始的物体，如果为NO，说明它只是整体的一小部分。</li>
+<li><em>centroid</em>: 图片多边形的中心往往并不是图片的中心，所以很有必要保存此值。</li>
+<li><em>properties</em>: 把所有的变量都设置属性，已让其他类能访问它们。</li>
+<li><em>init/spriteWith*</em>: 我们主要的init方法遵循Cocos2D的命名习惯。</li>
+<li><em>其他方法</em>: 还有一些处理Box2D body及其属性的方法。</li>
+<li><em>PTM_RATIO</em>: 像素到米的转换系数。Box2D内部使用米作为计量单位，需要此转换参数。</li></ul>
+
+快速切换到PolygonSprite.m并将其改名为<em>PolygonSprite.mm</em>。所有需要混合Objective-C (Cocos2D) 和 C++ (Box2D)的代码都需要有一个".mm"的后缀，这样做可以通知编译器开启混合编译。
+
+接下来，对<em>PolygonSprite.mm</em>做如下修改：
+
+<pre lang="objc">
+// Add inside the @implementation
+@synthesize body = _body;
+@synthesize original = _original;
+@synthesize centroid = _centroid;
+
++(id)spriteWithFile:(NSString *)filename body:(b2Body *)body  original:(BOOL)original
+{
+    return [[[self alloc]initWithFile:filename body:body original:original] autorelease];
+}
+
++(id)spriteWithTexture:(CCTexture2D *)texture body:(b2Body *)body  original:(BOOL)original
+{
+    return [[[self alloc]initWithTexture:texture body:body original:original] autorelease];
+}
+
++(id)spriteWithWorld:(b2World *)world
+{
+    return [[[self alloc]initWithWorld:world] autorelease];
+}
+
+-(id)initWithFile:(NSString*)filename body:(b2Body*)body  original:(BOOL)original
+{
+    NSAssert(filename != nil, @"Invalid filename for sprite");
+    CCTexture2D *texture = [[CCTextureCache sharedTextureCache] addImage: filename];
+    return [self initWithTexture:texture body:body original:original];
+}
+
+-(id)initWithTexture:(CCTexture2D*)texture body:(b2Body*)body original:(BOOL)original
+{
+    // gather all the vertices from our Box2D shape
+    b2Fixture *originalFixture = body->GetFixtureList();
+    b2PolygonShape *shape = (b2PolygonShape*)originalFixture->GetShape();
+    int vertexCount = shape->GetVertexCount();
+    NSMutableArray *points = [NSMutableArray arrayWithCapacity:vertexCount];
+    for(int i = 0; i < vertexCount; i++) {
+        CGPoint p = ccp(shape->GetVertex(i).x * PTM_RATIO, shape->GetVertex(i).y * PTM_RATIO);
+        [points addObject:[NSValue valueWithCGPoint:p]];
+    }
+    
+    if ((self = [super initWithPoints:points andTexture:texture]))
+    {
+        _body = body;
+        _body->SetUserData(self);
+        _original = original;
+        // gets the center of the polygon
+        _centroid = self.body->GetLocalCenter();
+        // assign an anchor point based on the center
+        self.anchorPoint = ccp(_centroid.x * PTM_RATIO / texture.contentSize.width, 
+                               _centroid.y * PTM_RATIO / texture.contentSize.height);
+        // more init stuff here later when you expand PolygonSprite
+    }
+    return self;
+}
+
+-(id)initWithWorld:(b2World *)world
+{
+    //nothing to do here
+    return nil;
+}
+</pre>
+
+与Cocos2D的习惯一样，所有的spriteWith开头的方法和initWith开头的方法相比，都只是增加了autorelease。虽然initWithWorld在此类中没有实际作用，但是在PolygonSprite的子类中会实现。
+
+主要的内容是在initWithFile 和 initWithTexture方法中。为了更加直观的说明，创建一个水果的流程如下：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_initdiagram.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_initdiagram-149x320.png" alt="Init Sequence" title="Init Sequence" width="149" height="320" class="alignnone size-medium wp-image-14375" /></a>
+
+<ul><li><em>initWithWorld</em>: 这是继承PolygonSprite的子类需要实现的方法，目前只需return nil，稍微我们会再处理它。</li>
+<li><em>initWithFile</em>: 这个方法添加从文件获取的纹理并把所有的需要的参数传给initWithTexture。</li>
+<li><em>initWithTexture</em>: 我们主要的初始化方法。PRFilledPolygon需要一个纹理和这个纹理的对应的实际多边形的顶点。由于上一步已经处理了纹理本身了，这一步只需要从sprite的Box2D body中获取相应的顶点即可。在向PRFilledPolygon传入这些顶点后，PRFilledPolygon会负责初始化这些之前声明过的变量。</li>
+<li><em>initWithPoints</em>: 这个方法所做的是都被PRKit包含了，你以后不需要再处理PRKit了，因为此方法已经封装好了。</li></ul>
+
+仍然在<em>PolygonSprite.mm</em>中，加入以下方法：
+
+<pre lang="objc">
+-(void)setPosition:(CGPoint)position
+{
+    [super setPosition:position];
+    _body->SetTransform(b2Vec2(position.x/PTM_RATIO,position.y/PTM_RATIO), _body->GetAngle());
+}
+
+-(b2Body*)createBodyForWorld:(b2World *)world position:(b2Vec2)position rotation:(float)rotation vertices:(b2Vec2*)vertices vertexCount:(int32)count density:(float)density friction:(float)friction restitution:(float)restitution
+{
+    b2BodyDef bodyDef;
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = position;
+    bodyDef.angle = rotation;
+    b2Body *body = world->CreateBody(&bodyDef);
+    
+    b2FixtureDef fixtureDef;
+    fixtureDef.density = density;
+    fixtureDef.friction = friction;
+    fixtureDef.restitution = restitution;
+    fixtureDef.filter.categoryBits = 0;
+    fixtureDef.filter.maskBits = 0;
+    
+    b2PolygonShape shape;
+    shape.Set(vertices, count);
+    fixtureDef.shape = &shape;
+    body->CreateFixture(&fixtureDef);
+    
+    return body;
+}
+
+-(void)activateCollisions
+{
+    b2Fixture *fixture = _body->GetFixtureList();
+    b2Filter filter = fixture->GetFilterData();
+    filter.categoryBits = 0x0001;
+    filter.maskBits = 0x0001;
+    fixture->SetFilterData(filter);
+}
+
+-(void)deactivateCollisions
+{
+    b2Fixture *fixture = _body->GetFixtureList();
+    b2Filter filter = fixture->GetFilterData();
+    filter.categoryBits = 0;
+    filter.maskBits = 0;
+    fixture->SetFilterData(filter);
+}
+</pre>
+
+在上面这段代码中，首先你重载了CCNode中的setPostion方法，当你更新sprite的坐标时，关联在其上的Box2D body的坐标也会被一同更新。
+
+然后你创建了一个辅助方法来创建和定义Box2D body。要创建body，你需要先定义一个body definition，一个a body object，a shape和一个fixture definition。这个方法没有什么具体的数值，稍后会由子类再具体化此方法。
+
+有一点需要注意的是categoryBits和maskBits。它们是用来过滤物体之间的碰撞的，如果一个物体的category bit与另一个物体的mask bit匹配，他们之间就有碰撞。你把他们设置为0，因为你希望它在初始化的时候没有任何碰撞。
+
+最后，你定义了两个方法简单的操纵categoryBits 和 maskBits，以此来控制PolygonSprite是否开启碰撞。
+
+在<em>PolygonSprite.mm</em>添加：
+
+<pre lang="objc">
+-(CGAffineTransform) nodeToParentTransform
+{
+    b2Vec2 pos  = _body->GetPosition();
+    
+    float x = pos.x * PTM_RATIO;
+    float y = pos.y * PTM_RATIO;
+    
+    if ( !isRelativeAnchorPoint_ ) {
+        x += anchorPointInPoints_.x;
+        y += anchorPointInPoints_.y;
+    }
+    
+    // Make matrix
+    float radians = _body->GetAngle();
+    float c = cosf(radians);
+    float s = sinf(radians);
+    
+    if( ! CGPointEqualToPoint(anchorPointInPoints_, CGPointZero) ){
+        x += c*-anchorPointInPoints_.x+ -s*-anchorPointInPoints_.y;
+        y += s*-anchorPointInPoints_.x+ c*-anchorPointInPoints_.y;
+    }
+    
+    // Rot, Translate Matrix
+    transform_ = CGAffineTransformMake( c,  s,
+                                       -s,c,
+                                       x,y );
+    
+    return transform_;
+}
+</pre>
+
+还记得我之前提到过你需要从PhysicsSprite中拷贝一个方法吗？是的，就是现在。这个方法所做的是保证Box2D shape和我们的sprite在移动时坐标保持同步。只需重写此方法，Cocos2D会为我们处理其他的转换，非常棒。
+
+拷贝完以上代码之后，你现在可以把PhysicsSprite.h和PhysicsSprite.mm都从你的项目中删除，它们已经没有利用价值了。
+
+编译并运行，一切都应该是完善的，现在你已经完成了PolygonSprite。
+
+<h2>为水果做计划</h2>
+
+在为我们的水果创建类之前，你需要先了解图片和它的图形需要遵循的规则。由于你需要把纹理映射到一个Box2D的多边形上，你必须受到Box2D的多边形的限制，有两点需要牢记在心：
+<ul><li>多边形必须是<em>convex（凸的）</em>, 这意味着多边形没有内角大于180度。</li>
+<li>多边形的边数不得超过<em>8个</em>。</li></ul>
+
+实际上，如果你允许每一个body包含多个shape，你完全可以超越这些限制。Box2D可以通过一些三角变换让凹多边形包含多个三角形来处理凹多边形，但是这超过了本篇教学的范围。
+
+为了保持简单性，本篇教学里我们会遵循1个Body对应1个Shape的原则。
+
+<div class="note"><p><em>Note:</em> PhysicsEditor, the tool we will be covering later in this tutorial, actually contains code to automatically triangulate polygons you draw into a set of convex shapes.  However, like I said we're trying to keep things simple here so will make sure to draw our shapes convex so we only have one shape per body.</p></div>
+
+看一下这两个水果的区别：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_shapediagram.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_shapediagram-480x235.png" alt="Concave vs Convex" title="Concave vs Convex" width="480" height="235" class="alignnone size-medium wp-image-14379" /></a>
+
+使用香蕉并不是很好的注意，因为它天生就是凹的形状。而西瓜则是非常好的，因为凸多边形非常完美的描述了它的外形。
+
+如果你遵循以上我们的原则定义这两个水果，你大致会得到如下的形状：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_shapeoutline.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_shapeoutline-480x221.png" alt="Box2D Shape Outline" title="Box2D Shape Outline" width="480" height="221" class="alignnone size-medium wp-image-14380" /></a>
+
+西瓜的多边形很完美，但是香蕉的多边形有一块儿很大的空隙，位置就是香蕉凹的那一块儿。Box2D会把那一部分也当作物体区域的一部分，这样会让香蕉的碰撞或切割多少看起来有些不自然。
+
+但这并不意味着你不使用香蕉，只是不建议使用香蕉而已。事实上，在之后的教学中你还是会用的这个香蕉。
+
+<h2>创建第一个水果 Creating the First Fruit</h2>
+
+是时候创建第一个水果了，就从西瓜开始吧（要想吃它至少要切上一刀）。
+
+回顾一下PolygonSprite的初始化流程，记得initWithTexture方法需要一个Box2D body参数，但是在这之前，initWithFile方法则不需要。
+
+这样做的原因是你需要为每一种水果都单独创建和定义body，所以initWithWorld方法不得不成为第一步，它会创建body并设置其他的每一种水果独有的值。
+
+创建Box2D body之前，你必须先知道此形状对应的多边形的各个顶点。有很多方法可以它，本教学中，你将会用到一个非常好的工具，PhysicsEditor，这个工具功能齐全，我们只用它一个功能即可，就是通过它帮我们获取多边形每个顶点的坐标。
+
+如果你还没有它，请前往<a href="http://sites.fastspring.com/codeandweb/product/all?source=raywenderlich">download PhysicsEditor</a>下载，完成后启动它，你会得到一个空的工程，它有3个面板/行。
+
+使用PhysicsEditor相当的直观。在左侧，你放置所有的你需要的图片。在中间，你可以清楚的看到你为图片定义的每一个顶点。在右侧，你可以调节body的各种参数。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_peintro.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_peintro-480x309.png" alt="Physics Editor!" title="Physics Editor!" width="480" height="309" class="alignnone size-medium wp-image-14382" /></a>
+
+把resource kit里Images文件夹中的watermelon.png拖拽进左侧的面板，西瓜就出现在了中间的面板。
+
+增加magnification值，在面板的底部能找到它，将其调节到一个合适的级别，然后点击面板左上角的五角星按钮创建一个3个顶点的多边形。
+
+右键点击多边形，选择“Add Vertex”直到一共有5-8个顶点。移动这些顶点让其符合西瓜的边缘，另外确保以下两点：
+<ul><li>你创建的多边形是凸的。</li>
+<li>西瓜图片上所有的有效像素都在多边形之内。</li></ul>
+
+<div class="note"><p><em>提示：</em> 还有一种绘制形状的快捷方式，就是使用PhysicsEditor的magic wand（魔术棒）工具。只需设置tolerance high为 5-8，就可以自动地生成顶点。</p></div>
+
+把其他所有的水果以及炸弹的图片从Images文件夹拖拽进来并执行同样的操作。
+
+你将会为以下图片定义图形：
+<ul><li>banana.png</li>
+<li>bomb.png</li>
+<li>grapes.png</li>
+<li>pineapple.png</li>
+<li>strawberry.png</li>
+<li>watermelon.png</li></ul>
+
+完成后，把右上角的Exporter选项设置为“Box2D generic (PLIST)”，最终的设置如下所示：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_peguide.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_peguide-421x320.png" alt="Define Shapes Easily with PhysicsEditor!" title="Define Shapes Easily with PhysicsEditor!" width="421" height="320" class="alignnone size-medium wp-image-14385" /></a>
+
+点击“Publish”或者“Publish As”，将顶点信息导出为PLIST文件。命名为fruits.plist。
+
+在本例中，fruits.plist在resource kit的Misc文件夹中。
+
+你仅仅需要查看一下PLIST文件的信息，所以不要把此文件加入到项目中，用Xcode打开它，用它有组织的方式查看该plist。
+
+点击“bodies”旁边的小三角展开它，你会看到你刚刚定义的那些形状。你需要展开到最深层级来查看西瓜的多边形顶点，如下所示：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_peplist.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_peplist-271x320.png" alt="The PhysicsEditor PLIST" title="The PhysicsEditor PLIST" width="271" height="320" class="alignnone size-medium wp-image-14386" /></a>
+
+展开watermelon/fixtures/Item 0/polygons节点，你会看到在polygons下又有另外的一个Item 0开头的数组。最后的这个数组就是你的形状。如果你确实是定义的凸多边形并且顶点数小于等于8个的话，形状的数组将只有一项。
+
+如果你发现你的不只一项，例如是Item 0 Array， Item 1 Array，等等，那么这意味着PhysicsEditor制作了一个具有复杂的多边形的形状，原因是形成了一个凹多边形或者顶点数太多了。如果是这样，请返回PhysicsEditor修复那个形状。
+
+接下来，展开Item 0这一项，观察最终的数值，它们就是你需要的顶点了。右侧的值是以{ number, number }格式显示的每个顶点的坐标。
+
+现在已经有了每个多边形准确的顶点值了，来继续创建西瓜类。
+
+在Xcode中，创建一个新文件，模版选择iOS\cocos2d v2.x\CCNode Class。让其继承PolygonSprite并命名为Watermelon。打开<em>Watermelon.h</em>并作如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "PolygonSprite.h"
+</pre>
+
+切换到<em>Watermelon.m</em>，将其重命名为<em>Watermelon.mm</em>，并添加以下init方法：
+
+<pre lang="objc">
+// Add inside the @implementation
+-(id)initWithWorld:(b2World *)world
+{
+    int32 count = 7;
+    NSString *file = @"watermelon.png";
+    b2Vec2 vertices[] = {
+        b2Vec2(5.0/PTM_RATIO,15.0/PTM_RATIO),
+        b2Vec2(18.0/PTM_RATIO,7.0/PTM_RATIO),
+        b2Vec2(32.0/PTM_RATIO,5.0/PTM_RATIO),
+        b2Vec2(48.0/PTM_RATIO,7.0/PTM_RATIO),
+        b2Vec2(60.0/PTM_RATIO,14.0/PTM_RATIO),
+        b2Vec2(34.0/PTM_RATIO,59.0/PTM_RATIO),
+        b2Vec2(28.0/PTM_RATIO,59.0/PTM_RATIO)
+    };
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    
+    b2Body *body = [self createBodyForWorld:world position:b2Vec2(screen.width/2/PTM_RATIO,screen.height/2/PTM_RATIO) rotation:0 vertices:vertices vertexCount:count density:5.0 friction:0.2 restitution:0.2];
+    
+    if ((self = [super initWithFile:file body:body original:YES]))
+    {
+        // We will initialize more values for the fruit here later
+    }
+    return self;
+}
+</pre>
+
+在以上代码中，你首先定义了有多少顶点，在此例中是7个。接下来，你使用一个数组存储刚刚在PLIST中看到的顶点值。然后使用PolygonSprite中便利方法来创建body。
+
+你设置了一个小的friction（摩擦力）来让形状不会永无止境的滑动，你还设置了一个小的restitution（回复力）来让形状互相碰撞时不会突然停下来。
+
+最后，你通过传入图片的文件名，Box2D body，使用基类的初始化方法创建对象。此时，对象的状态是original（原始的）水果。
+
+你需要resource kit中的watermelon图片，现在不如就把所有的图片资源都加入到工程中，以后的教学中也会用到。
+
+在你的Project Navigator panel（项目导航面板）中，右键点击Resources并选择“Add Files to CutCutCut”。添加resource kit中的Images文件夹到项目中。确保“Copy items into destination group's folder”和“Create groups for any added folders”是选中的。
+
+Follow the same steps to create Banana, Grapes, Pineapple, Strawberry, and Bomb.
+对香蕉，葡萄，菠萝，草莓和炸弹也用同样的步骤生成。
+
+你虽然只一步一步的完成了第一个水果的创建任务，但是其他的水果都是大同小异的重复性工作。在resource kit的Classes文件夹中包含了预先制作的水果和炸弹的类，你可以选择在你制作的过程中参考它们，或者干脆直接把它们加入到项目中来避免重复性工作。
+
+编译并运行，确保一切正常。
+
+<h2>添加水果到场景</h2>
+
+到目前位置，屏幕上还没有任何的东西呢，有点无聊吧？你肯定迫不及待的想来看看你的劳动成果了 :]
+
+切换到<em>HelloWorldLayer.h</em>并作如下修改：
+<pre lang="objc">
+// Add to top of file
+#import "PolygonSprite.h"
+
+// Add inside the @interface
+CCArray *_cache;
+
+// Add after the @interface
+@property(nonatomic,retain)CCArray *cache;
+</pre>
+
+切换回HelloWorldLayer.mm并作如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "Watermelon.h"
+
+// Add inside the @implementation
+@synthesize cache = _cache;
+
+// Add inside the init method, below [self initPhysics]
+[self initSprites];
+
+// Add inside the dealloc method, before calling [super dealloc]
+[_cache release];
+_cache = nil;
+
+// Add anywhere inside the @implementation and before the @end
+
+-(void)initSprites
+{
+    _cache = [[CCArray alloc] initWithCapacity:53];
+    
+    // Just create one sprite for now. This whole method will be replaced later.
+    PolygonSprite *sprite = [[Watermelon alloc] initWithWorld:world];
+    [self addChild:sprite z:1];
+    [sprite activateCollisions];
+    [_cache addObject:sprite];
+}
+</pre>
+
+你声明了一个缓存数组，它会保存你将来创建的所有的水果和炸弹。接下来，你创建了一个西瓜并把它加入到场景中。通过调用activateCollisions，说过就不会越过屏幕中的围墙了。
+
+编译并运行，你将会看到一个西瓜从屏幕中心掉落，最后落在屏幕底。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_watermelon.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_watermelon.png" alt="The Fruit of your Labor" title="The Fruit of your Labor" width="480" height="320" class="alignnone size-full wp-image-14389" /></a>
+
+你可能察觉到了，西瓜并不是在屏幕的正中心。导致此的原因是，对象的坐标是基于Box2D body改变的，而我们的Box2D body的origin（起始点）是在物体的左下角上。另外，西瓜周围的细线是因为我们开启了Box2D的调试绘制模式。
+
+<h2>何去何从？</h2>
+
+这是本篇教学到目前为止的<a href="http://www.raywenderlich.com/downloads/CutCutCutPart1.zip">样本工程</a>。
+ 
+这就是第1部分的全部了，到此为止，你已经得到了一个具有纹理多边形的西瓜，滑落到屏幕底端。
+
+但是与Box2D常用的绘制sprite矩形中的透明区域不同，我们使用PRKit绘制Box2D body的多边形覆盖的区域。这一点再未来将会派上大用场！
+
+你已经在第一篇中打好基础了，在<a href="/?p=14393">第2部分</a>中，你将会添加切割水果的功能！
+
+同时，如果你有有关本篇教程的任何问题和想说的，欢迎参加下面的论坛。
+
+<img src="http://www.raywenderlich.com/downloads/AllenTan.png" class="photo alignleft" />
+<i>本篇教程是由IOS教程组的成员<a href="/?page_id=9#allentan">Allen Tan</a>发布的，Allen是一位IOS开发者和<a href="http://whitewidget.com">White Widget</a>的创始人。</i>

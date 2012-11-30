@@ -1,0 +1,916 @@
+[caption id="attachment_14308" align="alignright" width="250" caption="Create a Sprite-Cutting Game with Cocos2D!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_250px.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_250px.png" alt="Create a Sprite-Cutting Game with Cocos2D!" title="Create a Sprite-Cutting Game with Cocos2D!" width="250" height="250" class="size-full wp-image-14308" /></a>[/caption]
+
+<i>本篇教程是由iOS教程组的成员<a href="/?page_id=9#allentan">Allen Tan</a>发布的，Allen是一位IOS开发者和<a href="http://whitewidget.com">White Widget</a>的创始人。</i>
+
+这是教你如何制作一款像<a href="http://www.halfbrick.com">Halfbrick Studios</a>公司的<a href="http://itunes.apple.com/us/app/fruit-ninja/id362949845?mt=8">Fruit Ninja</a>一样的切割精灵游戏系列教程的第2篇。
+
+在<a href="/?p=14302">第1篇中</a>，你学会了如何创建纹理多边形，并基于它制作了一个西瓜。
+
+在第1部分中所做的努力将在第2部分中收到回报，在此部分中，你将能够切割sprite。
+
+和第1部分一样，本篇教程需要你熟悉Cocos2D和Box2D。如果你是刚刚接触它们的话，请先学习本网站的<a href="/?p=352">Cocos2D入门</a>和<a href="/?p=457">Box2D入门</a>。<!--more--><h2>准备工作</h2>
+
+如果你还没有第1部分结束时的工程，请下载<a href="http://www.raywenderlich.com/downloads/CutCutCutPart1.zip">sample project</a>来继续本篇教程。
+
+接下来，对PolygonSprite的结构体进行一些修改以让它能处理切割。
+
+打开<em>PolygonSprite.h</em>并作如下修改：
+
+<pre lang="objc">
+// Add inside the @interface
+BOOL _sliceEntered;
+BOOL _sliceExited;
+b2Vec2 _entryPoint;
+b2Vec2 _exitPoint;
+double _sliceEntryTime;
+
+// Add after the @interface
+@property(nonatomic,readwrite)BOOL sliceEntered;
+@property(nonatomic,readwrite)BOOL sliceExited;
+@property(nonatomic,readwrite)b2Vec2 entryPoint;
+@property(nonatomic,readwrite)b2Vec2 exitPoint;
+@property(nonatomic,readwrite)double sliceEntryTime;
+</pre>
+
+然后，打开<em>PolygonSprite.mm</em>并作如下修改：
+
+<pre lang="objc">
+// Add inside the @implementation
+@synthesize entryPoint = _entryPoint;
+@synthesize exitPoint = _exitPoint;
+@synthesize sliceEntered = _sliceEntered;
+@synthesize sliceExited = _sliceExited;
+@synthesize sliceEntryTime = _sliceEntryTime;
+
+// Add inside the initWithTexture method, inside the if statement
+_sliceExited = NO;
+_sliceEntered = NO;
+_entryPoint.SetZero();
+_exitPoint.SetZero();
+_sliceExited = 0;
+</pre>
+
+编译并检查语法错误。
+
+以上的代码对PolygonSprite类及其子类进行了改进，储存了切割需要的变量信息：
+<ul><li><em>entryPoint</em>: 切割线首次和多边形接触的点。</li>
+<li><em>exitPoint</em>: 切割线第二次和多边形接触的点。</li>
+<li><em>sliceEntered</em>: 判断多边形是否已经有切割线进入了。</li>
+<li><em>sliceExited</em>: 判断多边形是否被完整切割过一次。</li>
+<li><em>sliceEntryTime</em>: 切割线进入多边形时的准确时间。用来决定过慢的轻扫动作不被视为切割动作。</li></ul>
+
+<h2>使用Ray Casts与Sprites相交</h2>
+
+为了切割sprite，你必须能够判断点在哪儿。这就需要用到Box2D的ray casting。
+
+在ray casting中，你需要指定一个起始点和一个结束点，Box2D会根据它们组成的线段判断哪些Box2D的fixtures和它有相交。不只如此，它还会触发一个回调函数来告诉你具体每一个与其碰撞的fixture。
+
+你将要使用ray casts，基于玩家触摸屏幕的点，来判断出所有触摸经过的fixtures，并使用回调函数来记录每个具体的相交的点。
+
+打开<em>HelloWorldLayer.h</em>并在@interface中加入如下内容：
+<pre lang="objc">
+CGPoint _startPoint;
+CGPoint _endPoint;
+</pre>
+
+切换到<em>HelloWorldLayer.mm</em>并做如下修改：
+
+<pre lang="objc">
+// Add inside the draw method after kmGLPushMatrix()
+ccDrawLine(_startPoint, _endPoint);
+
+// Add this method
+-(void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    for (UITouch *touch in touches){
+        CGPoint location = [touch locationInView:[touch view]];
+        location = [[CCDirector sharedDirector] convertToGL:location];
+        _startPoint = location;
+        _endPoint = location;
+    }
+}
+
+// Add this method
+- (void)ccTouchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    for (UITouch *touch in touches){
+        CGPoint location = [touch locationInView:[touch view]];
+        location = [[CCDirector sharedDirector] convertToGL:location];
+        _endPoint = location;
+    }
+}
+</pre>
+
+以上代码为触摸事件指定了起始点和结束点。
+
+当玩家触摸屏幕时，起始点在ccTouhesBegan方法中被记录下来，结束点跟随玩家手指的滑动，相应的在ccTouhesMoved方法中被记录。
+
+ccDrawLine方法从起始点到结束点画一条线。
+
+编译并运行，试着在屏幕中画一条线：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_drawline.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_drawline.png" alt="Draw the Line" title="Draw the Line" width="480" height="320" class="alignnone size-full wp-image-14395" /></a>
+
+这条线将会代表你接下来要创建的ray cast。
+
+为了使用Box2D的ray casting，你只需简单的调用world对象中的RayCast，并提供给它起始和结束点即可，每和任意一个fixture有交集的时候，就会触发一个回调函数。
+
+ray cast的方法需要存储在一个b2RayCastCallback类当中。
+
+在Xcode中，进入File\New\New File菜单，选择 iOS\C and C++\Header File，并点击Next。为新的头文件命名为<em>RayCastCallback.h</em>，点击Save。
+
+把该文件替换为以下内容：
+
+<pre lang="objc">
+#ifndef CutCutCut_RaycastCallback_h
+#define CutCutCut_RaycastCallback_h
+
+#import "Box2D.h"
+#import "PolygonSprite.h"
+
+class RaycastCallback : public b2RayCastCallback
+{
+public:
+RaycastCallback(){
+}
+
+float32 ReportFixture(b2Fixture *fixture,const b2Vec2 &point,const b2Vec2 &normal,float32 fraction)
+{
+    PolygonSprite *ps = (PolygonSprite*)fixture->GetBody()->GetUserData();
+    if (!ps.sliceEntered)
+    {
+        ps.sliceEntered = YES;
+        
+        //you need to get the point coordinates within the shape
+        ps.entryPoint  = ps.body->GetLocalPoint(point);
+        
+        ps.sliceEntryTime = CACurrentMediaTime() + 1;
+        CCLOG(@"Slice Entered at world coordinates:(%f,%f), polygon coordinates:(%f,%f)", point.x*PTM_RATIO, point.y*PTM_RATIO, ps.entryPoint.x*PTM_RATIO, ps.entryPoint.y*PTM_RATIO);
+    }
+    else if (!ps.sliceExited)
+    {
+        ps.exitPoint = ps.body->GetLocalPoint(point);
+        ps.sliceExited = YES;
+        
+        CCLOG(@"Slice Exited at world coordinates:(%f,%f), polygon coordinates:(%f,%f)", point.x*PTM_RATIO, point.y*PTM_RATIO, ps.exitPoint.x*PTM_RATIO, ps.exitPoint.y*PTM_RATIO);
+    }
+    return 1;
+}
+};
+
+#endif
+</pre>
+
+每当Box2D检测到一次接触，就会调用ReportFixture方法。如果多边形还没有切割线进入，那么就把相交点设置为entry point，如果已经有切割线进入了，就把相交点设置为exit point。
+
+你使用GetLocalPoint转换了坐标点是因为你需要知道在多边形内部的坐标，而不是世界坐标。世界坐标是起始于屏幕左下角，而本地坐标起始于形状的左下角。
+
+最后，你返回 1 来告诉Box2D，ray cast在检测到第一个fixture之后，还应该继续检测其他fixtures。返回其他的值会另次方法有其他表现，但是这已经超出了本篇教学的范畴。
+
+切换到<em>HelloWorldLayer.h</em>并作如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "RaycastCallback.h"
+
+// Add inside the @interface
+RaycastCallback *_raycastCallback;
+</pre>
+
+接下来，切换到<em>HelloWorldLayer.mm</em>并做如下修改：
+
+<pre lang="objc">
+// Add inside the init method, right after [self initSprites]
+_raycastCallback = new RaycastCallback();
+
+// Add at the end of the ccTouchesEnded method
+world->RayCast(_raycastCallback, 
+               b2Vec2(_startPoint.x / PTM_RATIO, _startPoint.y / PTM_RATIO),
+               b2Vec2(_endPoint.x / PTM_RATIO, _endPoint.y / PTM_RATIO));
+
+world->RayCast(_raycastCallback, 
+               b2Vec2(_endPoint.x / PTM_RATIO, _endPoint.y / PTM_RATIO),
+               b2Vec2(_startPoint.x / PTM_RATIO, _startPoint.y / PTM_RATIO));
+</pre>
+
+你声明了一个RayCastCallback类并将其作为RayCast方法的参数。目前你只在玩家触摸结束的时刻调用RayCast。
+
+你调用两次ray cast是因为Box2D ray casting只在一个方向上检测相交。解决的方法是在反方向上再次调用RayCast。
+
+编译并运行。试着画一条线并检查logs。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_raycastlog.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_raycastlog-351x320.png" alt="Check the Logs" title="Check the Logs" width="351" height="320" class="alignnone size-medium wp-image-14400" /></a>
+
+<h2>分隔多边形</h2>
+
+分隔多边形也许是本教程中最难的一部分，主要是因为此操作需要很多的计算，同时有很多的Box2D的规则需要遵守。
+
+不要着急，这同时也是最cool的一部分，我会一点一点的带你学会它！
+
+切换到<em>HelloWorldLayer.h</em>并作如下修改：
+<pre lang="objc">
+// Add to top of file
+#define calculate_determinant_2x2(x1,y1,x2,y2) x1*y2-y1*x2
+#define calculate_determinant_2x3(x1,y1,x2,y2,x3,y3) x1*y2+x2*y3+x3*y1-y1*x2-y2*x3-y3*x1
+
+// Add after the properties
+-(b2Vec2*)arrangeVertices:(b2Vec2*)vertices count:(int)count;
+-(void)splitPolygonSprite:(PolygonSprite*)sprite;
+-(BOOL)areVerticesAcceptable:(b2Vec2*)vertices count:(int)count;
+-(b2Body*)createBodyWithPosition:(b2Vec2)position rotation:(float)rotation vertices:(b2Vec2*)vertices vertexCount:(int32)count density:(float)density friction:(float)friction restitution:(float)restitution;
+</pre>
+
+切换到<em>HelloWorldLayer.mm</em>并添加如下方法：
+
+<pre lang="objc">
+-(void)splitPolygonSprite:(PolygonSprite*)sprite
+{
+    //declare & initialize variables to be used for later
+    PolygonSprite *newSprite1, *newSprite2;
+    
+    //our original shape's attributes
+    b2Fixture *originalFixture = sprite.body->GetFixtureList();
+    b2PolygonShape *originalPolygon = (b2PolygonShape*)originalFixture->GetShape();
+    int vertexCount = originalPolygon->GetVertexCount();
+    
+    //our determinant(to be described later) and iterator
+    float determinant;
+    int i;
+    
+    //you store the vertices of our two new sprites here
+    b2Vec2 *sprite1Vertices = (b2Vec2*)calloc(24, sizeof(b2Vec2));
+    b2Vec2 *sprite2Vertices = (b2Vec2*)calloc(24, sizeof(b2Vec2));
+    b2Vec2 *sprite1VerticesSorted, *sprite2VerticesSorted;
+    
+    //you store how many vertices there are for each of the two new sprites here
+    int sprite1VertexCount = 0;
+    int sprite2VertexCount = 0;
+    
+    //step 1:
+    //the entry and exit point of our cut are considered vertices of our two new shapes, so you add these before anything else
+    sprite1Vertices[sprite1VertexCount++] = sprite.entryPoint;
+    sprite1Vertices[sprite1VertexCount++] = sprite.exitPoint;
+    sprite2Vertices[sprite2VertexCount++] = sprite.entryPoint;
+    sprite2Vertices[sprite2VertexCount++] = sprite.exitPoint;
+    
+    //step 2:
+    //iterate through all the vertices and add them to each sprite's shape
+    for (i=0; i<vertexCount; i++)
+    {
+        //get our vertex from the polygon
+        b2Vec2 point = originalPolygon->GetVertex(i);
+        
+        //you check if our point is not the same as our entry or exit point first
+        b2Vec2 diffFromEntryPoint = point - sprite.entryPoint;
+        b2Vec2 diffFromExitPoint = point - sprite.exitPoint;
+        
+        if ((diffFromEntryPoint.x == 0 && diffFromEntryPoint.y == 0) || (diffFromExitPoint.x == 0 && diffFromExitPoint.y == 0))
+        {
+        }
+        else 
+        {
+            determinant = calculate_determinant_2x3(sprite.entryPoint.x, sprite.entryPoint.y, sprite.exitPoint.x, sprite.exitPoint.y, point.x, point.y);
+            
+            if (determinant > 0)
+            {
+                //if the determinant is positive, then the three points are in clockwise order
+                sprite1Vertices[sprite1VertexCount++] = point;
+            }
+            else
+            {
+                //if the determinant is 0, the points are on the same line. if the determinant is negative, then they are in counter-clockwise order
+                sprite2Vertices[sprite2VertexCount++] = point;
+                
+            }//endif
+        }//endif
+    }//endfor
+    
+    //step 3:
+    //Box2D needs vertices to be arranged in counter-clockwise order so you reorder our points using a custom function
+    sprite1VerticesSorted = [self arrangeVertices:sprite1Vertices count:sprite1VertexCount];
+    sprite2VerticesSorted = [self arrangeVertices:sprite2Vertices count:sprite2VertexCount];
+    
+    //step 4:
+    //Box2D has some restrictions with defining shapes, so you have to consider these. You only cut the shape if both shapes pass certain requirements from our function
+    BOOL sprite1VerticesAcceptable = [self areVerticesAcceptable:sprite1VerticesSorted count:sprite1VertexCount];
+    BOOL sprite2VerticesAcceptable = [self areVerticesAcceptable:sprite2VerticesSorted count:sprite2VertexCount];
+    
+    //step 5:
+    //you destroy the old shape and create the new shapes and sprites
+    if (sprite1VerticesAcceptable && sprite2VerticesAcceptable)
+    {
+        //create the first sprite's body        
+        b2Body *body1 = [self createBodyWithPosition:sprite.body->GetPosition() rotation:sprite.body->GetAngle() vertices:sprite1VerticesSorted vertexCount:sprite1VertexCount density:originalFixture->GetDensity() friction:originalFixture->GetFriction() restitution:originalFixture->GetRestitution()];
+        
+        //create the first sprite
+        
+        newSprite1 = [PolygonSprite spriteWithTexture:sprite.texture body:body1 original:NO];
+        [self addChild:newSprite1 z:1];
+        
+        //create the second sprite's body
+        b2Body *body2 = [self createBodyWithPosition:sprite.body->GetPosition() rotation:sprite.body->GetAngle() vertices:sprite2VerticesSorted vertexCount:sprite2VertexCount density:originalFixture->GetDensity() friction:originalFixture->GetFriction() restitution:originalFixture->GetRestitution()];
+        
+        //create the second sprite
+        newSprite2 = [PolygonSprite spriteWithTexture:sprite.texture body:body2 original:NO];
+        [self addChild:newSprite2 z:1];
+        
+        //you don't need the old shape & sprite anymore so you either destroy it or squirrel it away
+        if (sprite.original)
+        {   
+            [sprite deactivateCollisions];
+            sprite.position = ccp(-256,-256);   //cast them faraway
+            sprite.sliceEntered = NO;
+            sprite.sliceExited = NO;
+            sprite.entryPoint.SetZero();
+            sprite.exitPoint.SetZero();
+        }
+        else 
+        {
+            world->DestroyBody(sprite.body);
+            [self removeChild:sprite cleanup:YES];
+        }
+    }
+    else
+    {
+        sprite.sliceEntered = NO;
+        sprite.sliceExited = NO;
+    }
+    
+    //free up our allocated vectors
+    free(sprite1VerticesSorted);
+    free(sprite2VerticesSorted);
+    free(sprite1Vertices);
+    free(sprite2Vertices);
+}
+</pre>
+
+Wow，好多的代码啊。先编译一下确保没有错误，然后让我们循序渐进的过一遍这个方法：
+
+<em>准备阶段</em>
+声明变量。此部分最重要的是你声明了两个PolygonSprites对象，并使用两个数组保存了他们多边形的顶点。
+
+<em>阶段 1</em>
+第一步，分别向代表每个形状中顶点的数组中加入分割点。
+下边的图例说明了这个步骤的意义：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_cutdiagram.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_cutdiagram-350x320.png" alt="Intersection Points Belong to Both Shapes" title="Intersection Points Belong to Both Shapes" width="350" height="320" class="alignnone size-medium wp-image-14401" /></a>
+
+两个相交点同时属于两个形状的顶点。
+
+<em>阶段 2</em>
+你分派原形状中剩余的顶点。你知道这个形状永远都会被切成两部分，新的两个形状分别会在切割线的两端。
+
+你仅仅需要一个新的规则来决定原形状上的顶点该属于哪个新的形状。
+
+想象一下你有一个方法可以判断任意给定的三个点是顺时针的，还是逆时针的。如果你有了这个方法，那么你就可以根据起始点，结束点和原图形上的一点来做如下判断：
+
+“如果这三个点是顺时针的，那么把这个点加到形状2中，否则，加入到形状1！”
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_vertexassignment.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_vertexassignment-343x320.png" alt="Clockwise & Counter-Clockwise" title="Clockwise & Counter-Clockwise" width="343" height="320" class="alignnone size-medium wp-image-14402" /></a>
+
+好消息是，有一个方法可以用来决定这种顺序，通过使用一个叫做determinants的数学概念来实现它！
+
+在几何学中，determinants是一种数学方法，它可以判断一个点和一条线的关系，根据返回值结果的不同（正，负，0）来决定点在线的位置。
+
+determinant方程定义在HelloWorldLayer.h中，接收的参数为entry point，exit point，还有原图形上其中一个顶点。
+
+如果结果是正的，那么3个点就是顺时针的，如果结果是负的，它们就是逆时针的。如果结果是0，那么它们就在一条线上。
+
+你把所有的顺时针的点都加入到第1个sprite中，其他的加入到第2个sprite中。
+
+<em>阶段 3</em>
+Box2D需要所有的顶点都以逆时针顺序组织，所以你使用arrangeVertices方法为两个新sprite需要重新排列顶点。
+
+<em>阶段 4</em>
+这一步确保了这些经过重新排列的顶点满足Box2D的定义多边形的规则。如果areVerticesAcceptable方法认为这些顶点是不满足条件的，那么就把本次切割的信息从原sprite中移除。
+
+<em>阶段 5</em>
+这一步初始化了两个新的PolygonSprite对象并使用createBody方法创建了它们的Box2D body。新的sprite的属性会继承原sprite。
+
+如果是一个原sprite被切割了，它的状态会被重置。如果是一片被切割了，那么它将会被销毁并从场景中移除。
+
+呼...还跟着我呢吗？好，在你运行程序之前，还有额外的一些内容要添加：
+
+仍然在<em>HelloWorldLayer.mm</em>中，作如下修改：
+
+<pre lang="objc">
+// Add before the @implementation
+int comparator(const void *a, const void *b) {
+    const b2Vec2 *va = (const b2Vec2 *)a;
+    const b2Vec2 *vb = (const b2Vec2 *)b;
+    
+    if (va->x > vb->x) {
+        return 1;
+    } else if (va->x < vb->x) {
+        return -1;
+    }
+    return 0;    
+}
+
+// Add these methods
+-(b2Body*)createBodyWithPosition:(b2Vec2)position rotation:(float)rotation vertices:(b2Vec2*)vertices vertexCount:(int32)count density:(float)density friction:(float)friction restitution:(float)restitution
+{
+    b2BodyDef bodyDef;
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = position;
+    bodyDef.angle = rotation;
+    b2Body *body = world->CreateBody(&bodyDef);
+    
+    b2FixtureDef fixtureDef;
+    fixtureDef.density = density;
+    fixtureDef.friction = friction;
+    fixtureDef.restitution = restitution;
+    
+    b2PolygonShape shape;
+    shape.Set(vertices, count);
+    fixtureDef.shape = &shape;
+    body->CreateFixture(&fixtureDef);
+    
+    return body;
+}
+
+-(b2Vec2*)arrangeVertices:(b2Vec2*)vertices count:(int)count
+{
+    float determinant;
+    int iCounterClockWise = 1;
+    int iClockWise = count - 1;
+    int i;
+    
+    b2Vec2 referencePointA,referencePointB;
+    b2Vec2 *sortedVertices = (b2Vec2*)calloc(count, sizeof(b2Vec2));
+    
+    //sort all vertices in ascending order according to their x-coordinate so you can get two points of a line
+    qsort(vertices, count, sizeof(b2Vec2), comparator);
+    
+    sortedVertices[0] = vertices[0];
+    referencePointA = vertices[0];          //leftmost point
+    referencePointB = vertices[count-1];    //rightmost point
+    
+    //you arrange the points by filling our vertices in both clockwise and counter-clockwise directions using the determinant function
+    for (i=1;i<count-1;i++)
+    {
+        determinant = calculate_determinant_2x3(referencePointA.x, referencePointA.y, referencePointB.x, referencePointB.y, vertices[i].x, vertices[i].y);
+        if (determinant<0)
+        {
+            sortedVertices[iCounterClockWise++] = vertices[i];
+        }
+        else 
+        {
+            sortedVertices[iClockWise--] = vertices[i];
+        }//endif
+    }//endif
+    
+    sortedVertices[iCounterClockWise] = vertices[count-1];
+    return sortedVertices;
+}
+
+-(BOOL)areVerticesAcceptable:(b2Vec2*)vertices count:(int)count
+{
+    return YES;
+}
+</pre>
+
+这是以上方法的分类说明：
+
+<ul><li><em>createBody</em>: 此方法创建了活跃的可以和其他body产生碰撞的Box2D body。</li>
+<li><em>arrangeVertices</em>: 此方法按照逆时针的顺序重排顶点。它使用qsort方法按x坐标升序排列，然后使用determinants来完成最终的重排。</li>
+<li><em>comparator</em>: 此方法被qsort使用，它完成顶点比较并返回结果给qsort。</li>
+<li><em>areVerticesAcceptable</em>: 目前，此方法假设所有的顶点都是合理的。</li></ul>
+
+就是它了！理论上说，你现在就可以把一个多边形切成两部分了。但是...等等...我们最好用上你刚刚创建的方法！ :]
+
+还是在<em>HelloWorldLayer.mm</em>，添加以下修改：
+
+<pre lang="objc">
+// Add this method
+-(void)checkAndSliceObjects
+{
+    double curTime = CACurrentMediaTime();
+    for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())
+    {
+        if (b->GetUserData() != NULL) {
+            PolygonSprite *sprite = (PolygonSprite*)b->GetUserData();
+            
+            if (sprite.sliceEntered && curTime > sprite.sliceEntryTime) 
+            {
+                sprite.sliceEntered = NO;
+            }
+            else if (sprite.sliceEntered && sprite.sliceExited)
+            {
+                [self splitPolygonSprite:sprite];
+            }
+        }
+    }
+}
+
+// Add this in the update method
+[self checkAndSliceObjects];
+</pre>
+
+编译并运行，你可以试着去切割你的西瓜。
+
+等等它...
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_firstslice.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_firstslice.png" alt="The Power of Math Cuts the Watermelon" title="The Power of Math Cuts the Watermelon" width="480" height="320" class="alignnone size-full wp-image-14415" /></a>
+
+成功了！原来数学公式也能切水果啊！
+
+<em>注意</em>: 如果游戏突然挂掉了请不要着急。在完成了areVerticesAcceptable方法之后，这就会被修复了。
+
+<h2>一种更好的Swipe技术</h2>
+
+目前，切割感觉有一点不自然，因为玩家的手指可以移动一个曲线，但是我们仅仅把它当作直线来处理了。另外还有一点导致不自然的原因是，必须玩家的手指抬起来，切割才会生效。
+
+为了修复这个问题，打开<em>HelloWorldLayer.mm</em>并作如下修改：
+
+<pre lang="objc">
+// Add this method
+-(void)clearSlices
+{
+    for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())
+    {
+        if (b->GetUserData() != NULL) {
+            PolygonSprite *sprite = (PolygonSprite*)b->GetUserData();
+            sprite.sliceEntered = NO;
+            sprite.sliceExited = NO;
+        }
+    }
+}
+
+// Add this at the end of ccTouchesMoved
+if (ccpLengthSQ(ccpSub(_startPoint, _endPoint)) > 25)
+{
+    world->RayCast(_raycastCallback, 
+                   b2Vec2(_startPoint.x / PTM_RATIO, _startPoint.y / PTM_RATIO),
+                   b2Vec2(_endPoint.x / PTM_RATIO, _endPoint.y / PTM_RATIO));
+    
+    world->RayCast(_raycastCallback, 
+                   b2Vec2(_endPoint.x / PTM_RATIO, _endPoint.y / PTM_RATIO),
+                   b2Vec2(_startPoint.x / PTM_RATIO, _startPoint.y / PTM_RATIO));
+    _startPoint = _endPoint;
+}
+
+// Remove these from ccTouchesEnded
+world->RayCast(_raycastCallback, 
+               b2Vec2(_startPoint.x / PTM_RATIO, _startPoint.y / PTM_RATIO),
+               b2Vec2(_endPoint.x / PTM_RATIO, _endPoint.y / PTM_RATIO));
+
+world->RayCast(_raycastCallback, 
+               b2Vec2(_endPoint.x / PTM_RATIO, _endPoint.y / PTM_RATIO),
+               b2Vec2(_startPoint.x / PTM_RATIO, _startPoint.y / PTM_RATIO));
+
+// Add this inside ccTouchesEnded
+[self clearSlices];
+</pre>
+
+你把RayCast方法从ccTouchesEnded移动到了ccTouchesMoved，现在多边形就能够在手指移动过程中被切割了。Box2D ray cast不能被触发太频繁，也不能太不频繁，所以你设置每达到5个坐标长度时触发一次。
+
+使用ccpLengthSQ比较距离只是一种更优化的方式（与distance > 5相比）。处理距离需要用到开方公式，开方操作的消耗比较大，不能很频繁的使用。仅仅把等式两边都平方即可解决。
+
+每当RayCast方法执行，你都把结束点重新当成起始点处理。最后，当玩家结束触摸屏幕时，你清除所有的相交点。
+
+编译并运行，现在滑动感觉更自然了。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_betterswipe.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_betterswipe.png" alt="A More Natural Swipe" title="A More Natural Swipe" width="480" height="320" class="alignnone size-full wp-image-14416" /></a>
+
+使用这个方法，你将更容易破坏Box2D的规则。尝试创建一个结束点和起始点在同一边的切割线，看看会发生什么。同时还可以尝试能把sprite切割成多少个小片。
+
+这就来处理这些问题，切换到<em>RaycastCallback.h</em>并作如下修改：
+
+<pre lang="objc">
+// Remove the CCLOG commands
+
+// Add to top of file
+#define collinear(x1,y1,x2,y2,x3,y3) fabsf((y1-y2) * (x1-x3) - (y1-y3) * (x1-x2))
+
+// Remove this line from the else if statement
+ps.sliceExited = YES;
+
+// Add this inside the else if statement, right after setting the exitPoint
+b2Vec2 entrySide = ps.entryPoint - ps.centroid;
+b2Vec2 exitSide = ps.exitPoint - ps.centroid;
+
+if (entrySide.x * exitSide.x < 0 || entrySide.y * exitSide.y < 0)
+{
+    ps.sliceExited = YES;
+}
+else {
+    //if the cut didn't cross the centroid, you check if the entry and exit point lie on the same line
+    b2Fixture *fixture = ps.body->GetFixtureList();
+    b2PolygonShape *polygon = (b2PolygonShape*)fixture->GetShape();
+    int count = polygon->GetVertexCount();
+    
+    BOOL onSameLine = NO;
+    for (int i = 0 ; i < count; i++)
+    {
+        b2Vec2 pointA = polygon->GetVertex(i);
+        b2Vec2 pointB;
+        
+        if (i == count - 1)
+        {
+            pointB = polygon->GetVertex(0);
+        }
+        else {
+            pointB = polygon->GetVertex(i+1);
+        }//endif
+        
+        float collinear = collinear(pointA.x,pointA.y, ps.entryPoint.x, ps.entryPoint.y, pointB.x,pointB.y);
+        
+        if (collinear <= 0.00001)
+        {
+            float collinear2 = collinear(pointA.x,pointA.y,ps.exitPoint.x,ps.exitPoint.y,pointB.x,pointB.y);
+            if (collinear2 <= 0.00001)
+            {
+                onSameLine = YES;
+            }
+            break;
+        }//endif
+    }//endfor
+    
+    if (onSameLine)
+    {
+        ps.entryPoint = ps.exitPoint;
+        ps.sliceEntryTime = CACurrentMediaTime() + 1;
+        ps.sliceExited = NO;
+    }
+    else {
+        ps.sliceExited = YES;
+    }//endif
+}
+</pre>
+
+在接受一个结束点之前，这个回调函数检查两点的位置，如果起始点和结束点处在多边形中心点的两侧，那么这次切割是合理的。
+
+如果不在多边形中心点的两侧，那么继续检测切割线起始点和结束点是否在原图形所有的顶点形成的线上。如果他们在一条线上，那么就意味着相交点是另一个起始点，否则，就是一次完整的切割。
+
+切换回<em>HelloWorldLayer.mm</em>并把areVerticesAcceptable方法替换为如下：
+
+<pre lang="objc">
+-(BOOL)areVerticesAcceptable:(b2Vec2*)vertices count:(int)count
+{
+    //check 1: polygons need to at least have 3 vertices
+    if (count < 3)
+    {
+        return NO;
+    }
+    
+    //check 2: the number of vertices cannot exceed b2_maxPolygonVertices
+    if (count > b2_maxPolygonVertices)
+    {
+        return NO;
+    }
+    
+    //check 3: Box2D needs the distance from each vertex to be greater than b2_epsilon
+    int32 i;
+    for (i=0; i<count; ++i)
+    {
+        int32 i1 = i;
+        int32 i2 = i + 1 < count ? i + 1 : 0;
+        b2Vec2 edge = vertices[i2] - vertices[i1];
+        if (edge.LengthSquared() <= b2_epsilon * b2_epsilon)
+        {
+            return NO;
+        }
+    }
+    
+    //check 4: Box2D needs the area of a polygon to be greater than b2_epsilon
+    float32 area = 0.0f;
+    
+    b2Vec2 pRef(0.0f,0.0f);
+    
+    for (i=0; i<count; ++i)
+    {
+        b2Vec2 p1 = pRef;
+        b2Vec2 p2 = vertices[i];
+        b2Vec2 p3 = i + 1 < count ? vertices[i+1] : vertices[0];
+        
+        b2Vec2 e1 = p2 - p1;
+        b2Vec2 e2 = p3 - p1;
+        
+        float32 D = b2Cross(e1, e2);
+        
+        float32 triangleArea = 0.5f * D;
+        area += triangleArea;
+    }
+    
+    if (area <= 0.0001)
+    {
+        return NO;
+    }
+    
+    //check 5: Box2D requires that the shape be Convex.
+    float determinant;
+    float referenceDeterminant;
+    b2Vec2 v1 = vertices[0] - vertices[count-1];
+    b2Vec2 v2 = vertices[1] - vertices[0];
+    referenceDeterminant = calculate_determinant_2x2(v1.x, v1.y, v2.x, v2.y);
+    
+    for (i=1; i<count-1; i++)
+    {
+        v1 = v2;
+        v2 = vertices[i+1] - vertices[i];
+        determinant = calculate_determinant_2x2(v1.x, v1.y, v2.x, v2.y);
+        //you use the determinant to check direction from one point to another. A convex shape's points should only go around in one direction. The sign of the determinant determines that direction. If the sign of the determinant changes mid-way, then you have a concave shape.
+        if (referenceDeterminant * determinant < 0.0f)
+        {
+            //if multiplying two determinants result to a negative value, you know that the sign of both numbers differ, hence it is concave
+            return NO;
+        }
+    }
+    v1 = v2;
+    v2 = vertices[0]-vertices[count-1];
+    determinant = calculate_determinant_2x2(v1.x, v1.y, v2.x, v2.y);
+    if (referenceDeterminant * determinant < 0.0f)
+    {
+        return NO;
+    }
+    return YES;
+}
+</pre>
+
+你做了5步检查来决定一个多边形是否满足Box2D的标准：
+<ul><li><em>Check 1</em>: 一个多边形至少需要3个顶点。</li>
+<li><em>Check 2</em>: 多边形的顶点数最多不能超过预定义的b2_maxPolygonVertices，目前是8.</em>
+<li><em>Check 3</em>: 每个顶点之间的距离必须大于b2_epsilon。</li>
+<li><em>Check 4</em>: 多边形的面积必须大于b2_epsilon。这对于我们来说有点太小了，所以你适当调整为0.0001。</li>
+<li><em>Check 5</em>: 形状必须的凸的。</li></ul>
+
+前两个检查直截了当，第3个和第4个检查都是Box2D库要求的。最后的一个再次使用了determinants。
+
+一个凸的形状的顶点应该总是想一个方向拐弯。如果方向突然改变了，那么这个形状就会变为凹的。你遍历多边形的顶点并比较determinant结果的符号。如果符号突然改变了，就意味着多边形顶点的方向变了。
+
+编译并运行，切些水果并为你自己做些水果沙拉吧！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_crushedfruit.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_crushedfruit.png" alt="Fruit Grinder!" title="Fruit Grinder!" width="480" height="320" class="alignnone size-full wp-image-14422" /></a>
+
+<h2>结束调试模式</h2>
+现在你已经可以确定Box2D部分的工作都如你所料了，所以你不再需要调试绘制模式了。
+
+还是在<em>HelloWorldLayer.mm</em>中，作如下修改：
+
+<pre lang="objc">
+// Comment these out from the draw method
+ccDrawLine(_startPoint, _endPoint);
+world->DrawDebugData();
+
+// Add inside the init method
+[self initBackground];
+
+// Add this method
+-(void)initBackground
+{
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    CCSprite *background = [CCSprite spriteWithFile:@"bg.png"];
+    background.position = ccp(screen.width/2,screen.height/2);
+    [self addChild:background z:0];
+}
+</pre>
+
+编译并运行，你会看到一个漂亮的背景，它是由<a href="http://www.vickiwenderlich.com/">Vicki</a>为本篇教学创作的。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_addbg.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_addbg.png" alt="Monkey Forest" title="Monkey Forest" width="480" height="320" class="alignnone size-full wp-image-14426" /></a>
+
+<h2>使用CCBlade使切割可视化</h2>
+没有了调试绘制，你需要一个新方法来显示切割动作。由Ngo Duc Hiep制作的CCBlade是一个完美的解决方案。
+
+<a href="https://github.com/hiepnd/CCBlade">下载 CCBlade</a>，解压它，在 Xcode 中按 Option+Command+A 添加 CCBlade.m 和 CCBlade.h
+到你的工程中。确保“Copy items into destination group's folder”和“Create groups for any added folders”是选中的。
+
+CCBlade是由第三方维护的，所以本篇教学所用的版本也许不是最新的。你可以从resource kit的Class文件夹中得到本篇教学所用的CCBlade版本。
+
+你需要把CCBlade更新到Cocos2D 2.X，打开<em>CCBlade.m</em>，将其重命名为<em>CCBlade.mm</em>，并作如下修改：
+
+<pre lang="objc">
+// Replace everything starting from glDisableClientState in the draw method with this
+CC_NODE_DRAW_SETUP();
+
+ccGLBlendFunc( CC_BLEND_SRC, CC_BLEND_DST );
+
+ccGLBindTexture2D( [_texture name] );    
+glVertexAttribPointer(kCCVertexAttrib_Position, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), vertices);
+glVertexAttribPointer(kCCVertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, sizeof(coordinates[0]), coordinates);
+glDrawArrays(GL_TRIANGLE_STRIP, 0, 2*[path count]-2);
+
+// Add inside the initWithMaximumPoint method
+self.shaderProgram = [[CCShaderCache sharedShaderCache] programForKey:kCCShader_PositionTexture];
+
+// Remove from the setWidth method
+* CC_CONTENT_SCALE_FACTOR()
+
+// Remove from the push method
+if (CC_CONTENT_SCALE_FACTOR() != 1.0f) {
+    v = ccpMult(v, CC_CONTENT_SCALE_FACTOR());
+}
+</pre>
+
+你使用和之前转换PRFilledPolygon中的drawing代码一样的方式，并移除了缩放系数，因为shader程序已经处理它了。
+
+CCBlade有一个由点组成的path（路径）数组，并穿过这些点绘制一个纹理直线。目前它是在draw方法中更新的这个数组。不过，一种更推荐的方式是只在draw方式中绘制，其他的内容放到update方法中去。
+
+为了更好的管理path数组，你在HelloWorldLayer的update方法中更新它们。
+
+打开<em>CCBlade.h</em>并在@interface中加入以下内容：
+
+<pre lang="objc">
+@property(nonatomic,retain)NSMutableArray *path;
+</pre>
+
+切换到<em>CCBlade.mm</em>并在@implementation中加入以下内容：
+
+<pre lang="objc">
+@synthesize path;
+</pre>
+
+接下来，切换到<em>HelloWorldLayer.h</em>并作如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "CCBlade.h"
+
+// Add inside the @interface
+CCArray *_blades;
+CCBlade *_blade;
+float _deltaRemainder;
+
+// Add after the @interface
+@property(nonatomic,retain)CCArray *blades;
+</pre>
+
+最后，切换到<em>HelloWorldLayer.mm</em>并做如下修改：
+<pre lang="objc">
+// Add inside the @implementation
+@synthesize blades = _blades;
+
+// Add inside dealloc
+[_blades release];
+_blades = nil;
+
+// Add inside init, after _raycastCallback
+_deltaRemainder = 0.0;
+_blades = [[CCArray alloc] initWithCapacity:3];
+CCTexture2D *texture = [[CCTextureCache sharedTextureCache] addImage:@"streak.png"];
+
+for (int i = 0; i < 3; i++)
+{
+    CCBlade *blade = [CCBlade bladeWithMaximumPoint:50];
+    blade.autoDim = NO;
+    blade.texture = texture;
+    
+    [self addChild:blade z:2];
+    [_blades addObject:blade];
+}
+
+// Add inside update, right after [self checkAndSliceObjects]
+if ([_blade.path count] > 3) {
+    _deltaRemainder+=dt*60*1.2;
+    int pop = (int)roundf(_deltaRemainder);
+    _deltaRemainder-=pop;
+    [_blade pop:pop];
+}
+
+// Add inside ccTouchesBegan
+CCBlade *blade;
+CCARRAY_FOREACH(_blades, blade)
+{
+    if (blade.path.count == 0)
+    {
+        _blade = blade;
+        [_blade push:location];
+        break;
+    }
+}
+
+// Add inside ccTouchesMoved
+[_blade push:location];
+
+// Add inside ccTouchesEnded
+[_blade dim:YES];
+</pre>
+
+你为path数组制作了一个属性，这样就可以在HelloWorldLayer中访问它们了。然后你创建了3个在游戏中公用的CCBlade对象。对每一个blade，你设置最大的点个数为50来防止轨迹太长，并设置blade的纹理为Resources文件夹中的streak。
+
+你设置每个blade的autoDim变量为NO。CCBlade使用术语“Dim”来说明此blade会自动从尾巴到头的渐变消失。CCBlade自动从path数组中移除这些点。
+
+虽然这很方便，但是CCBlade在它自己的draw方法中已经实现了自动弹出效果，所以最好把这个属性设置为NO并由我们自己在update方法中控制它的dim特性。
+
+每当玩家触摸屏幕，你都指定一个目前空闲的CCBlade，并把触摸到的点压入它的path数组中。
+
+最后，当玩家结束触摸屏幕时，你通知CCBlade设置其dim为YES，让其自动渐隐销毁。
+
+你让update方法来处理目前活跃的CCBlade的dimming。你想让它无视帧率来恰当的渐隐，所以你把delta time乘上一个常数。
+
+因为delta time并不一定是一个整数，所以你需要用一个remainder变量将其存储，下次循环到来时再作计算。
+
+编译并运行，试试看你的新的漂亮的刀光效果吧！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_bladeeffect.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_bladeeffect.png" alt="Cool Blade Effect" title="Cool Blade Effect" width="480" height="320" class="alignnone size-full wp-image-14432" /></a>
+
+<h2>何去何从？</h2>
+
+这是到目前为止的教程的<a href="http://www.raywenderlich.com/downloads/CutCutCutPart2.zip">示例工程</a>。
+
+这就是第2部分的全部内容了，在<a href="/?p=14302">第1部分</a>中，你创建了西瓜的纹理多边形，但它最终会落到地上。现在，你已经可以用一个很cool的刀光效果把这只西瓜切成小细块儿了。
+
+在接下来的系列教程的<a href="/?p=14439">第3部分中</a>，你将会把所有内容合并成一款完整的游戏！
+
+<img src="http://www.raywenderlich.com/downloads/AllenTan.png" class="photo alignleft" />
+<i>本篇教程是由iOS教程组的成员<a href="/?page_id=9#allentan">Allen Tan</a>发布的，Allen是一位IOS开发者和<a href="http://whitewidget.com">White Widget</a>的创始人。</i>

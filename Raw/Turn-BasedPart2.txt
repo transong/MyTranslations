@@ -1,0 +1,756 @@
+[caption id="attachment_5487" align="alignright" width="250" caption="Learn how to make a turn-based game with Game Center in iOS 5!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/iOS_feast_turnbasedgaming.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/iOS_feast_turnbasedgaming.jpg" alt="Learn how to make a turn-based game with Game Center in iOS 5!" title="Learn how to make a turn-based game with Game Center in iOS 5!" width="250" height="250" class="size-full wp-image-5487" /></a>[/caption]
+
+<em>Note from Ray:</em> This is the seventh iOS 5 tutorial in the <a href="http://www.raywenderlich.com/5113/announcing-the-ios-5-feast">iOS 5 Feast</a>!  This tutorial is a free preview chapter from our new book <a href="http://www.raywenderlich.com/store/ios-5-by-tutorials">iOS 5 By Tutorials</a>.  Enjoy!
+
+<i>This is a blog post by iOS Tutorial Team member <a href="http://www.raywenderlich.com/about#jacobgundersen">Jacob Gundersen</a>, an indie game developer who runs the <a href="http://indieambitions.com/">Indie Ambitions</a> blog.  Check out his latest app - <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+
+This is the second part of a two part tutorial series where we'll show you how to build a simple turn-based game with the new Game Center APIs in iOS 5.
+
+In the <a href="http://www.raywenderlich.com/5480/beginning-turn-based-gaming-with-ios-5-part-1">first part of the tutorial series</a>, we started with the basics - getting the app set up, and creating a turn-based match.
+
+In this second and final part of the series, we'll get to the fun stuff.  We'll allow players to take their turns and add the extra details and polish to wrap up this game!
+
+So advance to the next turn, and let's wrap up this game!  :]
+
+<!--more-->
+
+<h2>Sending a Turn</h2>
+
+We need to set up a method that sends a turn.  When it¡¯s our turn, we want to be able to add a string of text (max 250 characters) to the end of the current story.  When we send a turn, we¡¯ll add our text to the previous text, then we¡¯ll send that new string with our turn.
+
+It¡¯s probably a good time to talk about the GKTurnBasedMatch object - remember this is passed to us in our didFindMatch callback that gets called when the user creates a new match (or joins an existing one).  All of the methods that signal a new turn will also give us a GKTurnBasedMatch to work with.  
+
+As you saw in the logs earlier, this object has a participants array that contains a GKTurnBasedParticipant for each player.  You can find out whose turn it is by looking at the currentParticipant property.  
+
+It also contains a matchData property which holds an NSData object of up to 4096 bytes that we¡¯ll use to record the state of our match (the string of the story for this game), which will be passed from one player to the next.
+
+The first thing we need to do is keep track of the current match, so we can modify the match data and have each player take their turn.  So open GCTurnBasedMatchHelper.h and add the following after the @interface:
+
+<pre lang="objc">
+@property (retain) GKTurnBasedMatch * currentMatch;
+</pre>
+
+And synthesize it in GCTurnBasedMatchHelper.m:
+
+<pre lang="objc">
+@synthesize currentMatch;
+</pre>
+
+Let's modify our didFinidMatch callback to set the current match to the passed in match.  Just add this to the bottom of the method:
+
+<pre lang="objc">
+self.currentMatch = match;
+</pre>
+
+Now let's create a method to let the player take his turn (by adding a new bit of text to the story in this game).  We'll call this method when the user enters some text in the text field and hits Done on the keyboard.
+
+Open up ViewController.xib, and bring up the Assistant Editor so ViewController.h is visible.  Control-drag from the text field down below the @interface to bring up the Connection popup.  Set the Connection to Action, the name to sendTurn, and click Connect.
+
+Switch to up ViewController.m and implement the method as follows:
+
+<pre lang="objc">
+- (IBAction)sendTurn:(id)sender {
+    GKTurnBasedMatch *currentMatch = 
+      [[GCTurnBasedMatchHelper sharedInstance] currentMatch];
+    NSString *newStoryString;
+    if ([textInputField.text length] > 250) {
+        newStoryString = [textInputField.text substringToIndex:249];
+    } else {
+        newStoryString = textInputField.text;
+    }
+    NSString *sendString = [NSString stringWithFormat:@"%@ %@", 
+      mainTextController.text, newStoryString];
+    NSData *data = 
+      [sendString dataUsingEncoding:NSUTF8StringEncoding ];
+    mainTextController.text = sendString;
+    
+    NSUInteger currentIndex = [currentMatch.participants 
+      indexOfObject:currentMatch.currentParticipant];
+    GKTurnBasedParticipant *nextParticipant;
+    nextParticipant = [currentMatch.participants objectAtIndex: 
+      ((currentIndex + 1) % [currentMatch.participants count ])];
+    [currentMatch endTurnWithNextParticipant:nextParticipant 
+      matchData:data completionHandler:^(NSError *error) {
+        if (error) {
+            NSLog(@"%@", error);
+        }
+    }];
+    NSLog(@"Send Turn, %@, %@", data, nextParticipant);
+    textInputField.text = @"";
+    characterCountLabel.text = @"250";
+    characterCountLabel.textColor = [UIColor blackColor];
+}
+</pre>
+
+This method is doing a whole bunch of things.  Let¡¯s step through each bit.  
+
+First we set up the currentMatch variable by retrieving the match from the GCTurnBasedMatchHelper singleton.  We may be involved in many matches at a time, but we¡¯ll only be displaying one match at a time.  We¡¯ll keep track of this one match in our currentMatch variable.
+
+Next we need to check to see if the length of the string we input into the text field is too long.  If the string is longer than 250 characters we cut it off with the substringToIndex call.  If not, we just pass the string into our variable.  
+
+Next we create an NSData object by combining the string that¡¯s in the mainTextController with the string we just created.  The dataUsingEncoding method converts the NSString representation to a UTF8 string and stores it in the data object.
+
+The next few lines set up the nextParticipant object.  Each time we send a turn we need to send information about who the next person in the turn rotation is.  We can set up our game to send the turn to any participant, including ourselves.  We can follow a strict rotation where the order of players always follows a pattern.  Or, we can set up other rules about who gets the next turn. 
+
+In our case we are retrieving the index of the current player, or the position of  the currentMatch.currentParticipant property, in the currentMatch.participants array.  Once we have the index of the current player, we just add one to it get that participant from the participants array.
+
+Once we have the NSData and the nextParticipant set, we can make the endTurnWithNextParticipant:matchData:completionHandler: call.  The completion handler is a block that will be called when ending the turn successfully completes (or fails).  In our case we are just logging any error that occurs. 
+
+We also log out the nextParticipant and the data object.  We can take a look at this to see if this is working as expected.  The last action is to clear the contents of the textInputField  and reset the characterCountLabel to 250 so when we load the next game, it¡¯s not cluttered with old text.
+
+Build and run now, and start a new match with the match controller.  Type something into the text field and press done.  You should see something like the following in your log:
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Log-from-Sending-Turn.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Log-from-Sending-Turn-500x341.png" alt="Error message when sending a turn in the game" title="Error message when sending a turn in the game" width="500" height="341" class="alignnone size-large wp-image-5513" /></a>
+
+You¡¯ll notice that in this log there is an error message.  This is because I ran the method twice.  The first time it sent fine.  However, once I sent my turn to the server, it was no longer my turn.  
+
+The match is now in the status ¡°matching¡± which means that it¡¯s looking for an automatched second player.  When I try and send another turn for my player, this is the error message that comes back and my new turn isn¡¯t recorded.
+
+<h2>Taking Turns</h2>
+
+There are several ways that we can take a turn in our app.  When we use automatch for a slot in our game, one of two things will happen.  Either
+
+<ol>
+<li>We¡¯ll get back a new match, with our player as the first participant, or</li>
+<li>We¡¯ll get back an existing match where our player has been placed in a second, third, fourth, etc slot in an existing match.</li>
+</ol>
+
+In both scenarios, didFindMatch will be called.  We¡¯ll need to write some code to distinguish between the two cases, because we want different things to happen in each case:
+
+<ol>
+<li>If we get back a new match, we want to create a clean slate for our story.  In our app, we¡¯ll use the string ¡°Once upon a time . . . ¡° every time we begin a new story.</li>
+<li>If we get back an existing match, then the match.matchData object will be populated with NSData with the story so far.  Instead of the starter text, we want to show this in our text view.</li>
+</ol>
+
+We just need to use a reliable test to distinguish between these two cases and deal with them differently.
+
+Each participant has a lastTurnDate property that is null until that participant takes their first turn.  We¡¯re going to use the last turn property of the first participant in the participants array to determine if we are the first turn, or if another player has started the match.  If we find that lastTurn is null, we¡¯ll assume that we¡¯re dealing with a new match, otherwise we¡¯ll assume that we already have matchData that we¡¯ll be dealing with.
+
+So open up GCTurnBasedMatchHelper.m and replace the didFindMatch method as follows:
+
+<pre lang="objc">
+-(void)turnBasedMatchmakerViewController: 
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  didFindMatch:(GKTurnBasedMatch *)match {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    self.currentMatch = match;
+    GKTurnBasedParticipant *firstParticipant = 
+      [match.participants objectAtIndex:0];
+    if (firstParticipant.lastTurnDate) {
+        NSLog(@"existing Match");
+    } else {
+        NSLog(@"new Match");
+    }
+}
+</pre>
+
+This code should be easy to comprehend.  We¡¯re getting the participant at the first index in our participants array, then testing to see if the lastTurnDate is populated.  If it is, we know we¡¯re entering a match that has already started.  If not, we know it¡¯s a new match and we are logging the case either way.
+
+At this point, you¡¯ll need a second device or to switch between sandboxed game center accounts in order to get the existing match scenario.  A single account/player can only take the first turn, after that you need a second player involved to test many of these scenarios.  
+
+So run the app on both devices (run one of them in the debugger so you can see its log messages).  Join a few matches and take your turn on each device, watching what shows up in your log.  You should see some new matches, and hopefully some existing matches too, which proves the match-making worked!
+
+Note that as of this writing this tutorial, the time between creating a new automatch and being able to jump in to the second player position can be up to five minutes.  This will probably get much faster by the time you are reading it, but don¡¯t be alarmed if you start an automatch on one device and immediately on a second device and instead of putting the second player into the first player¡¯s game, it creates another new match for the second player.
+
+One more word about automatch while we¡¯re on the subject.  Automatch doesn¡¯t start matching until the first player is finished taking his/her turn.  This is true for an invited slot as well.  If you start a game with three players, the third player won¡¯t be invited or automatched until after the first and second player have both taken their turn.
+
+<h2>Implementing Our Own Delegate Protocol</h2>
+
+Now is a good time to introduce our new delegate protocol.  We are going to build a protocol to manage the communication between the GCTurnBasedMatchHelper class and our ViewController.  This is better than hard-coding the ViewController into the GCTurnBasedHelper, because it will allow us to more easily reuse this class. 
+
+The GCTurnBasedMatchHelper will do some of the work, like distinguishing between a new and existing match, but will then then pass the match through to our ViewController class to handle what do for each case, because that's particular to the game logic.
+
+Lets go ahead and build the delegate protocol now.  Modify  GCTurnBasedMatchHelper.h to look like the following (notice the new protocol, and delegate instance variable and property):
+
+<pre lang="objc">
+#import <Foundation/Foundation.h>
+#import <GameKit/GameKit.h>
+
+@protocol GCTurnBasedMatchHelperDelegate
+- (void)enterNewGame:(GKTurnBasedMatch *)match;
+- (void)layoutMatch:(GKTurnBasedMatch *)match;
+- (void)takeTurn:(GKTurnBasedMatch *)match;
+- (void)recieveEndGame:(GKTurnBasedMatch *)match;
+- (void)sendNotice:(NSString *)notice 
+  forMatch:(GKTurnBasedMatch *)match;
+@end
+
+@interface GCTurnBasedMatchHelper : NSObject 
+  <GKTurnBasedMatchmakerViewControllerDelegate> {
+    BOOL gameCenterAvailable;
+    BOOL userAuthenticated;
+    UIViewController *presentingViewController;
+    
+    GKTurnBasedMatch *currentMatch;
+    
+    id <GCTurnBasedMatchHelperDelegate> delegate;
+}
+
+@property (nonatomic, retain) 
+  id <GCTurnBasedMatchHelperDelegate> delegate;
+@property (assign, readonly) BOOL gameCenterAvailable;
+@property (nonatomic, retain) GKTurnBasedMatch *currentMatch;
+
++ (GCTurnBasedMatchHelper *)sharedInstance;
+- (void)authenticateLocalUser;
+- (void)authenticationChanged;
+- (void)findMatchWithMinPlayers:(int)minPlayers maxPlayers:(int)maxPlayers viewController:(UIViewController *)viewController;
+
+@end
+</pre>
+
+Also before we forget, switch to GCTurnBasedMatchHelper.m and synthesise the delegate as follows:
+
+<pre lang="objc">
+@synthesize delegate;
+</pre>
+
+We¡¯ve added the five protocol method declarations and a new instance variable, delegate.  The delegate object will be sent the the methods, and it will be up to that delegate (in our case the ViewController class) to implement them.
+
+Let¡¯s quickly go through them now.  Then later when we implement them we¡¯ll explain them in more detail.
+
+<ol>
+<li><em>enterNewGame</em>. The first method we¡¯ve already discussed the use for.  When we are presented with a new game from the didFindMatch method, we want to display the "Once upon a time" starter text to the screen.</li>
+<li><em>layoutMatch.</em> The layoutMatch method is used when we want to view a match where it¡¯s another player¡¯s turn (just to check the state of the story for example).  We want to prevent the player from sending a turn in this case, but we still want to update the UI to reflect the most current state of the match.</li>
+<li><em>takeTurn.</em> The takeTurn method is for those cases when it is our player¡¯s turn, but it¡¯s an existing match.  This scenario exists when our player chooses an existing match from the GKTurnBasedMatchmakerViewController, or when a new turn notification comes in.  We¡¯ll talk about notifications a little later in this tutorial.</li>
+<li><em>recieveEndGame</em>. The receiveEndGame method will be called when a match has ended on our player¡¯s turn, or when we receive a notification that has a match has ended on another player¡¯s turn.  For this simple game, we¡¯ll just end the game when we are getting close to the current NSData turn-based game size limit (4096 bytes).</li>
+<li><em>sendNotice</em>. The sendNotice method happens when we receive an event (update turn, end game) on a match that isn¡¯t one we¡¯re currently looking at.  If we receive an end game notice on a match that we¡¯ve got loaded into our currentMatch variable, we¡¯ll update the UI to reflect the current state of that match, but if we receive the same notice on a match other than the one we¡¯re looking at, we don¡¯t want to automatically throw the user into that match, taking them away from the match they are currently looking at.  We¡¯ll decide later how to handle those notices.</li>
+</ol>
+
+Let¡¯s go ahead and send the delegate methods in our didFindMatch method for our new match and existing match scenarios.  Replace the NSLog methods with calls to the delegate methods, like so:
+
+<pre lang="objc">
+-(void)turnBasedMatchmakerViewController:
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  didFindMatch:(GKTurnBasedMatch *)match {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    self.currentMatch = match;
+    GKTurnBasedParticipant *firstParticipant = 
+      [match.participants objectAtIndex:0];
+    if (firstParticipant.lastTurnDate) {
+        [delegate takeTurn:match];
+    } else {
+        [delegate enterNewGame:match];
+    }
+}
+</pre>
+
+Next, open up ViewController.h and mark it as implementing our new protocol:
+
+<pre lang="objc">
+@interface ViewController : UIViewController <UITextFieldDelegate,  
+  GCTurnBasedMatchHelperDelegate> {
+</pre>
+
+Then switch to ViewController.m and implement the enterNewGame and takeTurn methods:
+
+<pre lang="objc">
+#pragma mark - GCTurnBasedMatchHelperDelegate
+
+-(void)enterNewGame:(GKTurnBasedMatch *)match {
+    NSLog(@"Entering new game...");
+    mainTextController.text = @"Once upon a time";
+}
+
+-(void)takeTurn:(GKTurnBasedMatch *)match {
+    NSLog(@"Taking turn for existing game...");
+    if ([match.matchData bytes]) {
+        NSString *storySoFar = 
+          [NSString stringWithUTF8String:[match.matchData bytes]];
+        mainTextController.text = storySoFar;
+    }
+}
+</pre>
+
+Pretty simple, eh?
+
+One last thing, we need to set the delegate property of the GCTurnBasedMatchHelper class to our ViewController.  Let¡¯s do that in the viewDidLoad method, like so:
+
+<pre lang="objc">
+[GCTurnBasedMatchHelper sharedInstance].delegate = self;
+</pre>
+
+Build and run on both devices, and you should be able to pass turns around!  
+
+Start a new game, either by invitation or automatch, take the first turn, give it a few minutes to make sure the server is updated, then enter that game from the other device.  If you have created participants by invitation you should have a game waiting in the your turn section, if done by automatch create another automatch game on the other device with the same number of players.  Again, the automatch won¡¯t always put you into the match you want, it does create new matches frequently.
+
+Note that after the other side takes a turn, your screen won't update because we haven't added the code in for that.  You can get the game to recognize it's your turn by tapping the game center button, and selecting the game.
+
+Too many matches?  At this point I have about five matches that have wrong data and other problems with them.  Some of your old games may act wrong because the data in them is incomplete or missing.  I¡¯d remove all of them and start fresh.  A good way to clean out all this data is to call a method that programmatically deletes all the matches for a user.  
+
+Put this code into the completion block for authenticateWithCompletionHandler like so:
+
+<pre lang="objc">
+
+if ([GKLocalPlayer localPlayer].authenticated == NO) {     
+    [[GKLocalPlayer localPlayer] 
+     authenticateWithCompletionHandler:^(NSError * error) {
+     [GKTurnBasedMatch loadMatchesWithCompletionHandler:
+       ^(NSArray *matches, NSError *error){
+         for (GKTurnBasedMatch *match in matches) { 
+             NSLog(@"%@", match.matchID); 
+             [match removeWithCompletionHandler:^(NSError *error){
+                 NSLog(@"%@", error);}]; 
+         }}];
+     }];        
+} else {
+    NSLog(@"Already authenticated!");
+}
+</pre>
+
+This code will only clear out the matches for one Game Center account, so you'll have to run it on both devices.  Also, remember when you have this code in it will clear all your matches on startup, so make sure to comment it out when you don't need it.  
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Received-Game-from-Game-Center.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Received-Game-from-Game-Center.png" alt="Received a turn based game from Game Center" title="Received a turn based game from Game Center" width="326" height="498" class="alignnone size-full wp-image-5518" /></a>
+
+<h2>What To Do When It¡¯s Not Our Turn</h2>
+
+Currently we have the ability to input text and run the game while it¡¯s not our turn.  While the API prevents us from updating the game state outside our turn, our app will throw errors and it would be better to indicate to the player when they are unable to enter text.
+
+When it¡¯s not the current player¡¯s turn, we want to update a status label telling the player that the match is currently in another player¡¯s turn.  Also, we should disable the text field.  
+
+Open up ViewController.xib, drag a label next to to the Game Center icon, and make it as wide as the screen.  Bring up the Assistant Editor, make sure ViewController.h is visible, control-drag from the label down inside the @interface and, connect it to an outlet named statusLabel.
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/statusLabel.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/statusLabel-500x314.png" alt="Adding a status label into the view controller" title="Adding a status label into the view controller" width="500" height="314" class="alignnone size-large wp-image-5520" /></a>
+
+We¡¯ll need to make some changes in both the GCTurnBasedMatchHelper class and the ViewController class in order keep track of whose turn it is.  Let's start by editing our didFindMatch method in GCTurnBasedMatchHelper.m:
+
+<pre lang="objc">
+-(void)turnBasedMatchmakerViewController: 
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  didFindMatch:(GKTurnBasedMatch *)match {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    self.currentMatch = match;
+    GKTurnBasedParticipant *firstParticipant = 
+      [match.participants objectAtIndex:0];
+    if (firstParticipant.lastTurnDate == NULL) {
+        // It's a new game!
+        [delegate enterNewGame:match];
+    } else {
+        if ([match.currentParticipant.playerID 
+          isEqualToString:[GKLocalPlayer localPlayer].playerID]) {
+            // It's your turn!
+            [delegate takeTurn:match];
+        } else {
+            // It's not your turn, just display the game state.
+            [delegate layoutMatch:match];
+        }        
+    }
+}
+</pre>
+
+Note we swapped the if/else statement around a bit here.
+
+We¡¯re checking the current player¡¯s (from the match) playerID against the currently player that¡¯s logged into game center.  If they match, it¡¯s our player¡¯s turn.  In that case we send the same method.  However, if they don¡¯t match then it¡¯s not the current player¡¯s turn (this can happen when it¡¯s someone else¡¯s turn, or when it¡¯s no one¡¯s turn, because the match has ended).  
+
+If it¡¯s not our player¡¯s turn, then we¡¯re going to send a different method, the layoutMatch method.  This just updates the UI to reflect the current state of the match.  In our app, we¡¯ll be doing this a lot, we¡¯ll want the player to be able to watch as the story progresses.
+
+Here¡¯s the implementation for the layoutMatch method.  This code should go in ViewController.m:
+
+<pre lang="objc">
+-(void)layoutMatch:(GKTurnBasedMatch *)match {
+    NSLog(@"Viewing match where it's not our turn...");
+    NSString *statusString;
+    
+    if (match.status == GKTurnBasedMatchStatusEnded) {
+        statusString = @"Match Ended";
+    } else {
+        int playerNum = [match.participants 
+          indexOfObject:match.currentParticipant] + 1;
+        statusString = [NSString stringWithFormat:
+          @"Player %d's Turn", playerNum];
+    }
+    statusLabel.text = statusString;
+    textInputField.enabled = NO;
+    NSString *storySoFar = [NSString stringWithUTF8String:
+      [match.matchData bytes]];
+    mainTextController.text = storySoFar;
+}
+</pre>
+
+The first thing we¡¯re doing in this method is constructing the string we¡¯ll put in the statusLabel.  We need to distinguish between open and closed matches first.  We check the GKTurnBasedMatchStatus match.status - if it¡¯s equal to ended, then we have and ended game and we set the statusString to tell the user that.
+
+If we currently waiting on another player, we want to get the position of the player in the array.  We¡¯ll add one so we don¡¯t have a Player 0.  We construct the string for the player¡¯s turn and set the label to that string.
+
+Next, we are disabling the textInputField so that our player won¡¯t have the ability to enter text.  Finally, as we have before, we update the mainTextController to hold the body of the story.
+
+Let¡¯s go back and make a few edits to our other two methods to incorporate the new label and the logic that will turn on the text field.  Add this code:
+
+<pre lang="objc">
+-(void)enterNewGame:(GKTurnBasedMatch *)match {
+    NSLog(@"Entering new game...");
+    statusLabel.text = @"Player 1's Turn (that's you)";
+    textInputField.enabled = YES;
+    mainTextController.text = @"Once upon a time";
+}
+
+-(void)takeTurn:(GKTurnBasedMatch *)match {
+    NSLog(@"Taking turn for existing game...");
+    int playerNum = [match.participants 
+      indexOfObject:match.currentParticipant] + 1;
+    NSString *statusString = [NSString stringWithFormat:
+      @"Player %d's Turn (that's you)", playerNum];
+    statusLabel.text = statusString;
+    textInputField.enabled = YES;
+    if ([match.matchData bytes]) {
+        NSString *storySoFar = [NSString stringWithUTF8String:
+          [match.matchData bytes]];
+        mainTextController.text = storySoFar;
+    }
+}
+</pre>
+
+This code is very similar, except we've added some code to enable the text input field and display the status. 
+
+A few other things we need to do, Change the properties on the statusLabel so that it¡¯s in word wrap mode and has 2 lines (and make it a bit taller).  
+
+Also in the viewDidLoad method, let¡¯s set the statusLabel to something like, ¡°Press the game center button to get started¡± and disable the textInputField:
+
+<pre lang="objc">
+textInputField.enabled = NO;
+statusLabel.text = @"Welcome.  Press Game Center to get started";
+</pre>
+
+If you build and run now, when you start a new game or enter an existing game to enter text, and have a status label that gives you a better indication of where you are in the match.  It doesn't correctly update the state when you take a turn yet though.
+
+Also note you still have to go back into Game Center and re-select a game to get updates, but we're one step closer to a functional game!
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/player-1s-turn.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/player-1s-turn.png" alt="Taking a turn in our game" title="Taking a turn in our game" width="337" height="493" class="alignnone size-full wp-image-5521" /></a>
+
+<h2>Finishing Off the Matchmaker View Controller Delegate Methods</h2>
+
+We¡¯re finished with the didFindMatch method.  But, we still have to do some minor finishing of the other delegate methods.  
+
+The didCancel method only needs to dismiss the view controller, so it¡¯s fine as is.  The error method is also satisfactory as is, in a polished implementation we¡¯d want to handle the various errors in a more elegant way, but for our purpose here, logging the error is fine.
+
+But we do have to change the playerDidQuit method, so update it as follows in GCTurnBasedMatchHelper.m:
+
+<pre lang="objc">
+
+-(void)turnBasedMatchmakerViewController: 
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  playerQuitForMatch:(GKTurnBasedMatch *)match {
+    NSUInteger currentIndex = 
+      [match.participants indexOfObject:match.currentParticipant];
+    GKTurnBasedParticipant *part;
+    
+    for (int i = 0; i < [match.participants count]; i++) {
+        part = [match.participants objectAtIndex:
+          (currentIndex + 1 + i) % match.participants.count];
+        if (part.matchOutcome != GKTurnBasedMatchOutcomeQuit) {
+            break;
+        } 
+    }
+    NSLog(@"playerquitforMatch, %@, %@", 
+      match, match.currentParticipant);
+    [match participantQuitInTurnWithOutcome:
+      GKTurnBasedMatchOutcomeQuit nextParticipant:part 
+      matchData:match.matchData completionHandler:nil];
+}
+</pre>
+
+If the player currently holds the baton and quits a match, that match is stuck, because only the current player can submit a turn, and a next player, and that player has quit.  So when the player quits during their turn, we need to hand off the baton for them.  That¡¯s what this method does.
+
+This method is called when we quit a game from the view controller and it¡¯s our turn.  If it¡¯s not our turn and we quit, then another method, playerQuitOutOfTurn, is called for us and all that is dealt with automatically.  
+
+In this case we¡¯re iterating through the list of participants and looking for a participant who doesn¡¯t have a matchOutcome of GKTurnBasedMatchOutcomeQuit.  We don¡¯t want to pass the match to a player who has quit.  If we try to give the match to a player who has quit we¡¯ll get an error and that turn won¡¯t be recorded.
+
+When we find the next participant in the array that doesn¡¯t have a quit status, we call participantQuitInMatchWithOutcome:nextParticipant:matchData:completionHandler: which assigns an outcome to the quitting player (in this case, quit) passes the match to the next player, and end the turn. 
+
+In this game, we don¡¯t need to do anything with the matchData, but pass it on.  In other scenarios, the game may require something to be done to the game state before it can be passed on.
+
+While we¡¯re fixing this, we should make some of the same changes to our sendTurn method.  In a case like this one, we want to iterate through the participants and make sure the one we¡¯re passing the match to hasn¡¯t quit.  In fact, if you build and run now, start a match with three players (in a two player game if one quits the game ends), go around a few times, then have a player quit, then try to pass the quit player the match, you¡¯ll see this:
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/handleTurn.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/handleTurn-500x189.png" alt="Current turn isn't as expected error" title="Current turn isn't as expected error" width="500" height="189" class="alignnone size-large wp-image-5522" /></a>
+
+So change the sendTurn method in ViewController.m to this:
+
+<pre lang="objc">
+
+- (IBAction)sendTurn:(id)sender {
+    GKTurnBasedMatch *currentMatch = 
+      [[GCTurnBasedMatchHelper sharedInstance] currentMatch];
+    NSString *newStoryString;
+    if ([textInputField.text length] > 250) {
+        newStoryString = [textInputField.text substringToIndex:249];
+    } else {
+        newStoryString = textInputField.text;
+    }
+    NSString *sendString = [NSString stringWithFormat:@"%@ %@", 
+      mainTextController.text, newStoryString];
+    NSData *data = [sendString 
+      dataUsingEncoding:NSUTF8StringEncoding ];
+    mainTextController.text = sendString;
+    
+    NSUInteger currentIndex = [currentMatch.participants 
+      indexOfObject:currentMatch.currentParticipant];
+    GKTurnBasedParticipant *nextParticipant;
+    
+    NSUInteger nextIndex = (currentIndex + 1) % 
+      [currentMatch.participants count];
+    nextParticipant = 
+      [currentMatch.participants objectAtIndex:nextIndex];
+    
+    for (int i = 0; i < [currentMatch.participants count]; i++) {
+        nextParticipant = [currentMatch.participants 
+          objectAtIndex:((currentIndex + 1 + i) % 
+          [currentMatch.participants count ])];
+        if (nextParticipant.matchOutcome != 
+            GKTurnBasedMatchOutcomeQuit) {
+            break;
+        } 
+    }
+    
+    [currentMatch endTurnWithNextParticipant:nextParticipant 
+      matchData:data completionHandler:^(NSError *error) {
+        if (error) {
+            NSLog(@"%@", error);
+            statusLabel.text = 
+              @"Oops, there was a problem.  Try that again.";
+        } else {
+            statusLabel.text = @"Your turn is over.";
+            textInputField.enabled = NO;
+        }
+    }];
+    NSLog(@"Send Turn, %@, %@", data, nextParticipant);
+    textInputField.text = @"";
+    characterCountLabel.text = @"250";
+}
+</pre>
+
+First we add the code that runs through all the participants, the first time it finds one where they haven¡¯t quit (usually this will be the first iteration in the loop) it breaks out of the loop.  This way we skip over participants who have quit.
+
+The other thing we added here was two bits of unrelated code.  First, we update the status if there was an error or if there wasn¡¯t.  Second, if the turn was send without problem, we disable the textInputField so that another turn cannot be sent immediately to that game.
+
+If you build and run now, you should see the status update when you send a turn!
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/updating-statuslabel-when-done.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/updating-statuslabel-when-done-328x500.png" alt="Updating the status label when the turn is complete" title="Updating the status label when the turn is complete" width="328" height="500" class="alignnone size-large wp-image-5524" /></a>
+
+<h2>Event Handler Delegate</h2>
+
+Our game is coming along well so far, but there's one major problem - we never get updated when the other players take their turn!  It's quite annoying having to constantly check by bringing up the Game Center UI.
+
+As you've been playing with the app, you may have noticed we sometimes get badges and/or system notifications of new turns/invitations to your game.  This is being done by the GKTurnBasedEventHandler object. This object sends notifications to and badges our app when certain events happen, like when it¡¯s our player¡¯s turn.
+
+There are three delegate callbacks that give our app a way to deal with these notices as they come in.  One is the method that gets called if you starts an invite for that game from within the game center app, one when the turn advances (even if it¡¯s not our turn, there¡¯s a callback every time the match changes hands), and one is fired when the game ends.
+
+In order to receive and handle these events, we first need to set ourselves as the delegate of the GKTurnBasedEventHandler.  This object is a singleton and the only time we deal with it directly is when we set ourselves as it¡¯s delegate.  
+
+Like the view controller delegate protocol, we¡¯re going to be using our GCTurnBasedMatchHelper class to act as an intermediary for all the communication from these notices.  So, that¡¯s what we need to set up as the delegate.  We have to set the delegate after we have logged in to game center or it may not work.  Change the authenticateUser code to the following:
+
+<pre lang="objc">
+- (void)authenticateLocalUser { 
+    
+    if (!gameCenterAvailable) return;
+    
+    void (^setGKEventHandlerDelegate)(NSError *) = ^ (NSError *error)
+    {
+        GKTurnBasedEventHandler *ev = 
+          [GKTurnBasedEventHandler sharedTurnBasedEventHandler];
+        ev.delegate = self;
+    };
+    
+    NSLog(@"Authenticating local user...");
+    if ([GKLocalPlayer localPlayer].authenticated == NO) {     
+        [[GKLocalPlayer localPlayer] 
+         authenticateWithCompletionHandler:
+          setGKEventHandlerDelegate];        
+    } else {
+        NSLog(@"Already authenticated!");
+        setGKEventHandlerDelegate(nil);
+    }
+}
+</pre>
+
+You can see here that I¡¯m setting up a block (we do this so we can pass it into the completionHandler of the authenticate method).  The block just gets a pointer to the singleton and uses the pointer to set the delegate to self.  Simple.
+
+Then we pass that in as the completionHandler parameter in the case where we need to authenticate.  If we don¡¯t need to authenticate then we just call the block.  
+
+The block takes an NSError parameter if it¡¯s run by the completionHandler.  If we call it directly we can just enter nil for the error (because the error would have been coming from any problem with the authenticate method, we didn¡¯t run it).
+
+Alright, we¡¯re set up to receive callbacks from the GKTurnBasedEventHandlerDelegate, well almost.  We also need to set our object as a GKTurnBasedEventHandlerDelegate and implement the methods.  Do that now:
+
+In GCTurnBasedMatchHelper.h, change the @interface line to:  
+
+<pre lang="objc">
+@interface GCTurnBasedMatchHelper : NSObject 
+  <GKTurnBasedMatchmakerViewControllerDelegate, 
+  GKTurnBasedEventHandlerDelegate> {
+</pre>
+
+And add the following code to GCTurnBasedMatchHelper.m:
+
+<pre lang="objc">
+#pragma mark GKTurnBasedEventHandlerDelegate
+
+-(void)handleInviteFromGameCenter:(NSArray *)playersToInvite {
+    NSLog(@"new invite");
+}
+
+-(void)handleTurnEventForMatch:(GKTurnBasedMatch *)match {
+    NSLog(@"Turn has happened");
+}
+
+-(void)handleMatchEnded:(GKTurnBasedMatch *)match {
+    NSLog(@"Game has ended");
+}
+</pre>
+
+Build and run now.  You should be able to test the handleTurn event by letting the other player take a turn, and you should see the log message.  w00t!
+
+The handleMatchEnded will require us to write a method that ends the game.  The handleInviteFromGameCenter is only fired when you start a game from inside the game center app.  
+
+If you send an invite from game center, the callback needs to instantiate a new GKMatchRequest and either programmatically or with the view controller (GKTurnBasedMatchmakerViewController) set up the new match.  Invites sent from within the app won¡¯t need to call this method.
+
+Here¡¯s an output to the console for the handleTurn event:
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/handleTurn1.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/handleTurn1-500x189.png" alt="Console output demonstrating handleTurn is called" title="Console output demonstrating handleTurn is called" width="500" height="189" class="alignnone size-large wp-image-5528" /></a>
+
+<h2>Handling Invitations</h2>
+
+Let¡¯s write handleInviteFromGameCenter next.  You may assume erroneously at first, as I did, that this method fires whenever we receive a named invite to a game.  This is not what the method is for at all!  
+
+There is no method for that, an invite sent from within a game just shows up in your list of available matches.  This method handles the incoming data from game center when you create an invite for one of your friends for the game.  So, when you switch from game center to the game, there¡¯s information about who you want to invite to a new game included in the callback (playersToInvite).  This is called on the inviting player¡¯s game, not the invitee.  I include this personal mistake here because I¡¯m not the only one who was confused.
+
+If we get a new invite from game center, we need to instantiate the GKTurnBasedMatchmakerViewController with a GKMatchRequest.  This method will give us an array of players that are supposed to be in the match.  We¡¯ll use this object to set up the GKMatchRequest.  Here¡¯s what that code should look like:
+
+<pre lang="objc">
+-(void)handleInviteFromGameCenter:(NSArray *)playersToInvite {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    GKMatchRequest *request = 
+      [[[GKMatchRequest alloc] init] autorelease]; 
+    request.playersToInvite = playersToInvite;
+    request.maxPlayers = 12;
+    request.minPlayers = 2;
+    GKTurnBasedMatchmakerViewController *viewController =
+      [[GKTurnBasedMatchmakerViewController alloc] 
+        initWithMatchRequest:request];
+    viewController.showExistingMatches = NO;
+    viewController.turnBasedMatchmakerDelegate = self;
+    [presentingViewController 
+      presentModalViewController:viewController animated:YES];
+}
+</pre>
+
+The first thing we do is get rid of any current modal view controller that is present.  After that we set up the GKMatchRequest and then the GKTurnBasedMatchmakerViewController.  Note that the showExistingMatches is set to NO.  We only want to see the new game view for this match.  We set up the delegate and then present our view controller.
+
+If you build and run now you should be able to start a match from the Game Center (it won¡¯t call this method if you do an invite from inside our game) and send the invite.  One thing to note, the simulator doesn¡¯t receive any notifications from the GKTurnBasedEventHandlerDelegate, so you¡¯ll have to test this on a device.
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/handling-the-invite.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/handling-the-invite.png" alt="Inviting friends in Game Center" title="Inviting friends in Game Center" width="321" height="498" class="alignnone size-full wp-image-5533" /></a>
+
+<h2>Handling the Turn Event</h2>
+
+When the handleTurn is called, either the match has moved from one player to another, and it¡¯s still not our turn, or the turn has moved to our player.  In addition, the match that¡¯s currently loaded into the game state, may or may not be the match that has received the handleTurn call.  We need to distinguish between these scenarios and handle each in turn.
+
+Here¡¯s the code:
+
+<pre lang="objc">
+-(void)handleTurnEventForMatch:(GKTurnBasedMatch *)match {
+    NSLog(@"Turn has happened");
+    if ([match.matchID isEqualToString:currentMatch.matchID]) {
+        if ([match.currentParticipant.playerID 
+          isEqualToString:[GKLocalPlayer localPlayer].playerID]) {
+            // it's the current match and it's our turn now
+            self.currentMatch = match;
+            [delegate takeTurn:match];
+        } else {
+            // it's the current match, but it's someone else's turn
+            self.currentMatch = match;
+            [delegate layoutMatch:match];
+        }
+    } else {
+        if ([match.currentParticipant.playerID 
+          isEqualToString:[GKLocalPlayer localPlayer].playerID]) {
+            // it's not the current match and it's our turn now
+            [delegate sendNotice:@"It's your turn for another match" 
+              forMatch:match];
+        } else {
+            // it's the not current match, and it's someone else's 
+            // turn
+        }
+    }
+}
+</pre>
+
+We end up with four scenarios.  We¡¯ll send delegate methods for three of them, the fourth we¡¯ll ignore, but we¡¯ve set it up here in case you wish to handle it in another game.
+
+The first two are that the current match is the same as the match we¡¯re in.  In that case we¡¯ll send takeTurn, if it¡¯s our turn, and layoutMatch if it¡¯s not.  We¡¯re still setting the currentMatch to our passed in match, because even though the matchID is the same, the incoming match has updated state data (match.matchData) and the currentParticipant has changed.
+
+If we are sent a notice for a match that we¡¯re not looking at, and it has become our turn, we¡¯ll send the sendNotice delegate method.  We¡¯ll use this method to display an alert letting the user know.  
+
+If the turns change on matches that we¡¯re not looking at, and it¡¯s not our turn, we¡¯ll do nothing.  The users can go looking at those matches by loading them using the GKTurnBasedMatchmakerViewController, we don¡¯t need to interrupt them every time things change on every match.  In other kinds of games, we may want to do just that, so that section is available to you.
+
+With the handleTurn method in place, you can now run the game.  Each time a new turn is sent, you should see the UI on your game update and the statusLabel should let you know who¡¯s turn it is! 
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/player-3s-turn.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/player-3s-turn-375x500.png" alt="Status label showing the current player's turn" title="Status label showing the current player's turn" width="375" height="500" class="alignnone size-large wp-image-5535" /></a>
+
+Depending on what the state of your game is, you might get an error saying the sendNotice callback isn't implemented yet.  That's our next step anyway, so let¡¯s go ahead and implement the sendNotice method in ViewController.m.
+
+<pre lang="objc">
+-(void)sendNotice:(NSString *)notice forMatch:
+  (GKTurnBasedMatch *)match {
+    UIAlertView *av = [[UIAlertView alloc] initWithTitle:
+      @"Another game needs your attention!" message:notice 
+      delegate:self cancelButtonTitle:@"Sweet!" 
+      otherButtonTitles:nil];
+    [av show];
+    [av release];
+}
+</pre>
+
+This is pretty straightforward.  We¡¯re just letting them know that another match needs their attention.  We¡¯ll let them use the GKTurnBasedMatchmakerViewController to load the match when they are ready.  You should be able to get this alert if you are playing multiple games:
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/UIAlertView.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/UIAlertView-375x500.png" alt="Showing an alert view when another game is ready" title="Showing an alert view when another game is ready" width="375" height="500" class="alignnone size-large wp-image-5536" /></a>
+
+<h2>Ending the Game</h2>
+
+We¡¯ve really only got one thing left to accomplish, and that¡¯s ending the game.  But, we probably also want to give our users some advance notice that they only have a certain number of turns left.  
+
+We¡¯ll do this with a new method that checks the length of the NSData.  We¡¯ll end the game when it gets to above 3800 characters, but let¡¯s start letting our players know when the game gets to about 3000 characters. 
+
+This new method will be called each time a match is loaded, so we¡¯ll put it in our takeTurn method and our layoutMatch method.  If the match is getting close to being over, this method will add some information to our statusLabel, saying, there¡¯s only about 200 characters left.
+
+Add this method to ViewController.m right after dealloc:
+
+<pre lang="objc">
+-(void)checkForEnding:(NSData *)matchData {
+    if ([matchData length] > 3000) {
+        statusLabel.text = [NSString stringWithFormat:
+          @"%@, only about %d letter left", statusLabel.text, 
+            4000 - [matchData length]];
+    }
+}
+</pre>
+
+Also call this method at the end of layoutMatch and takeTurn:
+
+<pre lang="objc">
+[self checkForEnding:match.matchData];
+</pre>
+
+Go ahead an build and run, you should get something like this (after you have written a bunch of stuff).
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/end-game.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/end-game-375x500.png" alt="Ending game based on character count" title="Ending game based on character count" width="375" height="500" class="alignnone size-large wp-image-5539" /></a>
+
+What we¡¯ll do is end the game whenever the total character count exceeds 3800.  The reason is that we don¡¯t want the possibility that the NSData string will be larger than 4096, because Game Center won¡¯t take the endTurn if the matchData is too large.  
+
+So, in modify the sendTurn one last time to the following:
+
+<pre lang="objc">
+- (IBAction)sendTurn:(id)sender {
+    GKTurnBasedMatch *currentMatch = 
+      [[GCTurnBasedMatchHelper sharedInstance] currentMatch];
+    NSString *newStoryString;
+    if ([textInputField.text length] > 250) {
+        newStoryString = [textInputField.text substringToIndex:249];
+    } else {
+        newStoryString = textInputField.text;
+    }
+    
+    NSString *sendString = [NSString stringWithFormat:@"%@ %@", 
+      mainTextController.text, newStoryString];
+    NSData *data = [sendString dataUsingEncoding:NSUTF8StringEncoding ];
+    mainTextController.text = sendStri

@@ -1,0 +1,846 @@
+[caption id="attachment_14308" align="alignright" width="250" caption="Create a Sprite-Cutting Game with Cocos2D!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_250px.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_250px.png" alt="Create a Sprite-Cutting Game with Cocos2D!" title="Create a Sprite-Cutting Game with Cocos2D!" width="250" height="250" class="size-full wp-image-14308" /></a>[/caption]
+
+<i>本篇教程是由iOS教程组的成员<a href="/?page_id=9#allentan">Allen Tan</a>发布的，Allen是一位IOS开发者和<a href="http://whitewidget.com">White Widget</a>的创始人。</i>
+
+欢迎来到系列教程的第3部分，本系列教程将教你如何制作一款类似<a href="http://www.halfbrick.com">Halfbrick Studios</a>公司出品的<a href="http://itunes.apple.com/us/app/fruit-ninja/id362949845?mt=8">水果忍者</a>的游戏。
+
+在<a href="/?p=14302">第1部分</a>中，你学会了如何制作一个纹理多边形，并基于它制作了一个西瓜。
+
+在<a href="/?p=14393">第2部分</a>中，你学会了如何使用Box2D Ray Casting 和一些数学方法来切割纹理多边形。
+
+在本篇同时也是最后一部分中，你将把上一篇结束时的工程通过加入gameplay，特效和音效让其变得羽翼丰满。
+
+另外，如果你是刚刚接触Cocos2D 和 Box2D的话，请先学习本网站的<a href="/?p=352">Cocos2D入门</a>和<a href="/?p=457">Box2D入门</a>。<!--more--><h2>准备工作</h2>
+
+我们需要使用上一部分结束的工程，所以确保你已经有了第2部分的<a href="http://www.raywenderlich.com/downloads/CutCutCutPart2.zip">工程</a>。
+
+另外，如果你还没有<a href="http://www.raywenderlich.com/downloads/CutCutCutResourceKit.zip">本教程的所用资源</a>，请先下载它。你稍后将要在这个工程中添加很cool的特效！<!--more--><h2>向上抛水果</h2>
+
+到目前为止你只在屏幕上画了一些静止的水果。在你加入“向上抛”这个机制前，你必须有不同种类的水果。如果你还没有准备好这些水果的类，那么你可以到resources的Classes文件夹里找到它们。
+
+所以此时你在工程里应该有：香蕉（Banana），葡萄（Grapes），菠萝（Pineapple），草莓（Strawberry），和西瓜（Watermelon）等水果了。
+
+切换到<em>PolygonSprite.h</em>并做如下修改：
+
+<pre lang="objc">
+// Add to top of file
+typedef enum _State
+{
+kStateIdle = 0,
+kStateTossed
+} State;
+
+typedef enum _Type
+{
+kTypeWatermelon = 0,
+kTypeStrawberry,
+kTypePineapple,
+kTypeGrapes,
+kTypeBanana,
+kTypeBomb
+} Type;
+
+// Add inside @interface
+State _state;
+Type _type;
+
+// Add after @interface
+@property(nonatomic,readwrite)State state;
+@property(nonatomic,readwrite)Type type;
+</pre>
+
+然后切换到<em>PolygonSprite.mm</em>并作如下修改：
+
+<pre lang="objc">
+// Add inside @implementation
+@synthesize state = _state;
+@synthesize type = _type;
+
+// Add inside the if statement of initWithTexture
+_state = kStateIdle;
+
+// Add inside createBodyForWorld, right after setting the maskBits of the fixture definition
+fixtureDef.isSensor = YES;
+</pre>
+
+你在PolygonSprite中添加一个type属性用来区分这些子类。接下来，你为每种水果分别添加了state属性。一个idle（空闲）的state意味着水果可以被向上抛，另外tossed（被抛）state意味着水果还在屏幕中运动的过程中呢。
+
+PolygonSprites中的body对象设成sensors，这意味着Box2D只会检测这些body的碰撞而不会实际作用这些碰撞。当你把一个水果从底部抛向空中时，你并不想让他们在下落时互相碰撞，因为玩家很有可能还没看见它们就输掉了。
+
+接下来，作如下修改：
+<pre lang="objc">
+// Add inside the if statement of Banana.mm
+self.type = kTypeBanana;
+// Add inside the if statement of Bomb.mm
+self.type = kTypeBomb;
+// Add inside the if statement of Grapes.mm
+self.type = kTypeGrapes;
+// Add inside the if statement of Pineapple.mm
+self.type = kTypePineapple;
+// Add inside the if statement of Strawberry.mm
+self.type = kTypeStrawberry;
+// Add inside the if statement of Watermelon.mm
+self.type = kTypeWatermelon;
+</pre>
+
+切换回<em>HelloWorldLayer.mm</em>，并作如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "Strawberry.h"
+#import "Pineapple.h"
+#import "Grapes.h"
+#import "Banana.h"
+#import "Bomb.h"
+
+// Replace the initSprites method
+-(void)initSprites
+{
+    _cache = [[CCArray alloc] initWithCapacity:53];
+    
+    for (int i = 0; i < 10; i++)
+    {
+        PolygonSprite *sprite = [[Watermelon alloc] initWithWorld:world];
+        sprite.position = ccp(-64*(i+1),-64);
+        [self addChild:sprite z:1];
+        [_cache addObject:sprite];
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        PolygonSprite *sprite = [[Strawberry alloc] initWithWorld:world];
+        sprite.position = ccp(-64*(i+1),-64);
+        [self addChild:sprite z:1];
+        [_cache addObject:sprite];
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        PolygonSprite *sprite = [[Pineapple alloc] initWithWorld:world];
+        sprite.position = ccp(-64*(i+1),-64);
+        [self addChild:sprite z:1];
+        [_cache addObject:sprite];
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        PolygonSprite *sprite = [[Grapes alloc] initWithWorld:world];
+        sprite.position = ccp(-64*(i+1),-64);
+        [self addChild:sprite z:1];
+        [_cache addObject:sprite];
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        PolygonSprite *sprite = [[Banana alloc] initWithWorld:world];
+        sprite.position = ccp(-64*(i+1),-64);
+        [self addChild:sprite z:1];
+        [_cache addObject:sprite];
+    }
+    
+    for (int i = 0; i < 3; i++)
+    {
+        PolygonSprite *sprite = [[Bomb alloc] initWithWorld:world];
+        sprite.position = ccp(-64*(i+1),-64);
+        [self addChild:sprite z:1];
+        [_cache addObject:sprite];
+    }
+}
+</pre>
+
+你为每一种PloygonSprite的子类都赋予一种type，在游戏中预先创建水果（每种10个），另外3个炸弹。你并不想让它们立刻显示，所以先把它们放到屏幕之外。
+
+编译并运行，不会看到有水果显示出来。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_initfruits.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_initfruits.png" alt="Prepare to Toss" title="Prepare to Toss" width="480" height="320" class="alignnone size-full wp-image-14440" /></a>
+
+在游戏中，水果从屏幕下方被抛起来。我们可以采取同时或者一个接一个的向上抛的方式，对每一次抛的间隔，水果的数量，位置，高度和方向都做一些随机。
+
+这些随机特性会让游戏变得更有趣。
+
+切换回<em>HelloWorldLayer.h</em>并作如下修改：
+
+<pre lang="objc">
+// Add to top of file, below the calculate_determinant definition
+#define frandom (float)arc4random()/UINT64_C(0x100000000)
+#define frandom_range(low,high) ((high-low)*frandom)+low
+#define random_range(low,high) (arc4random()%(high-low+1))+low
+
+typedef enum _TossType
+{
+kTossConsecutive = 0,
+kTossSimultaneous
+}TossType;
+
+// Add inside the @interface
+double _nextTossTime;
+double _tossInterval;
+int _queuedForToss;
+TossType _currentTossType;
+</pre>
+
+然后，切换到<em>HelloWorldLayer.mm</em>并作如下修改：
+
+<pre lang="objc">
+// Add inside the init method
+_nextTossTime = CACurrentMediaTime() + 1;
+_queuedForToss = 0;
+</pre>
+
+你定义了方法用来输出在固定范围内的随机float和integer，并对上文提到的两种抛水果的方式定义了type。
+
+接下来，你定义了以下游戏逻辑的变量，它们是：
+<ul><li><em>nextTossTime</em>: 这是下一次水果被抛起的时间，可以是一个或者一组水果。它总是和CACurrentMediaTime()做比较，你将其初始化为当前时间加1秒，这样在游戏开始时不会没有任何缓冲时间地马上开始抛水果。</li>
+<li><em>tossInterval</em>: 这是两次抛水果的时间间隔（秒）。在每次抛水果时，你都把这个值加到nextTossTime上。</li>
+<li><em>queuedForToss</em>: 此值表示在当前的抛水果类型中，还需要被抛的水果的随机数量。</li>
+<li><em>currentTossType</em>: 当前抛水果的类型。在simultaneous（同时） 和 consecutive（顺序）中随机选一个。</li></ul>
+
+还在<em>HelloWorldLayer.mm</em>中，添加方法：
+
+<pre lang="objc">
+-(void)tossSprite:(PolygonSprite*)sprite
+{
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    CGPoint randomPosition = ccp(frandom_range(100, screen.width-164), -64);
+    float randomAngularVelocity = frandom_range(-1, 1);
+    
+    float xModifier = 50*(randomPosition.x - 100)/(screen.width - 264);
+    float min = -25.0 - xModifier;
+    float max = 75.0 - xModifier;
+    
+    float randomXVelocity = frandom_range(min,max);
+    float randomYVelocity = frandom_range(250, 300);
+    
+    sprite.state = kStateTossed;
+    sprite.position = randomPosition;
+    [sprite activateCollisions];
+    sprite.body->SetLinearVelocity(b2Vec2(randomXVelocity/PTM_RATIO,randomYVelocity/PTM_RATIO));
+    sprite.body->SetAngularVelocity(randomAngularVelocity);
+}
+</pre>
+
+这个方式赋予在屏幕下方的sprite一个随机位置，并计算出一个随机的速度。min和max根据当前位置限制速度，让sprite不会太偏左，也不会太偏右。
+
+这些值大多都是试出来的。如果sprite在最左边，速度的x在-25到75能够保持sprite仍然在屏幕范围内。如果sprite在中间，那么-50到50就可以满足了，其他情况类似。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_trajectories.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_trajectories.png" alt="Planned Trajectories" title="Planned Trajectories" width="480" height="320" class="alignnone size-full wp-image-14494" /></a>
+
+在计算过所有的随机值后，将state设置为kStateTossed表示sprite已经被抛起了，同时启动sprite的collision mask并设置初始速度。
+
+我在之前说正被抛到空中的sprite并不和正在下落的sprite碰撞，所以你一定会奇怪为什么我们这里调用activateCollisions。这是因为这个方法只是设置sprite的body的category和mask bits，并不会改变它是sensor的事实。
+
+改变这些bits很重要，因为当sprite被切割后，新的形状就不再是sensor了，同时它们会继承原sprite的以上这些属性。
+
+这个方法已经给予了每个水果随机位置和随机速度，所以接下来的逻辑就是创建每两次抛水果的随机间隔时间了。
+
+添加方法到<em>HelloWorldLayer.mm</em>中：
+
+<pre lang="objc">
+-(void)spriteLoop
+{
+    double curTime = CACurrentMediaTime();
+    
+    //step 1
+    if (curTime > _nextTossTime)
+    {
+        PolygonSprite *sprite;
+        
+        int random = random_range(0, 4);
+        //step 2
+        Type type = (Type)random;
+        if (_currentTossType == kTossConsecutive && _queuedForToss > 0)
+        {
+            CCARRAY_FOREACH(_cache, sprite)
+            {
+                if (sprite.state == kStateIdle && sprite.type == type)
+                {
+                    [self tossSprite:sprite];
+                    _queuedForToss--;
+                    break;
+                }
+            }
+        }
+        else
+        { //step 3
+            _queuedForToss = random_range(3, 8);
+            int tossType = random_range(0,1);
+            
+            _currentTossType = (TossType)tossType;
+            //step 4
+            if (_currentTossType == kTossSimultaneous)
+            {
+                CCARRAY_FOREACH(_cache, sprite)
+                {
+                    if (sprite.state == kStateIdle && sprite.type == type)
+                    {
+                        [self tossSprite:sprite];
+                        _queuedForToss--;
+                        random = random_range(0, 4);
+                        type = (Type)random;
+                        
+                        if (_queuedForToss == 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+            } //step 5
+            else if (_currentTossType == kTossConsecutive)
+            {
+                CCARRAY_FOREACH(_cache, sprite)
+                {
+                    if (sprite.state == kStateIdle && sprite.type == type)
+                    {
+                        [self tossSprite:sprite];
+                        _queuedForToss--;
+                        break;
+                    }
+                }
+            }
+        }
+        //step 6
+        if (_queuedForToss == 0)
+        {
+            _tossInterval = frandom_range(2,3);
+            _nextTossTime = curTime + _tossInterval;
+        }
+        else 
+        {
+            _tossInterval = frandom_range(0.3,0.8);
+            _nextTossTime = curTime + _tossInterval;
+        }
+    }
+}
+</pre>
+
+这里发生了很多事，让我们分解成详细步骤看看：
+<ul><li><em>阶段 1</em>: 通过比较当前时间和nextTossTime，检查是否到了下一次抛水果的时间。</li>
+<li><em>阶段 2</em>: 如果在consecutive模式中还有在队列中的水果等待被抛起，那么抛起它并直接进入阶段6.</li>
+<li><em>阶段 3</em>: 从consecutive和simultaneous抛水果模式中选择其一，并设置一个被抛弃的水果的数量。</li>
+<li><em>阶段 4</em>: 同时抛起随机数量的水果。注意水果tpye的范围从0到4因为你并不想包含Bomb（炸弹）类型。</li>
+<li><em>阶段 5</em>: 与阶段2类似。检测如果是consecutive模式，就抛起第一个水果并进入阶段6.</li>
+<li><em>阶段 6</em>: 设置两次抛水果的间隔时间。当所有的水果都抛完后，你随机取一个较长的间隔时间，否则，说明你当前处在consecutive模式，那么就随机取一个较短的间隔时间。</li></ul>
+
+把这个方法添加到update方法中来循环执行。在<em>HelloWorldLayer.mm</em>中，添加下边的一行到update方法中：
+
+<pre lang="objc">
+[self spriteLoop];
+</pre>
+
+在启动游戏之前还需要做一件事。由于我们的sprite从屏幕下方被抛起，并最终落回屏幕，你应该移除被默认创建的墙。仍然在<em>HelloWorldLayer.mm</em>，作如下修改：
+
+<pre lang="objc">
+// In the initPhysics method, replace gravity.Set(0.0f, -10.0f) with
+gravity.Set(0.0f, -4.25f);
+
+// Comment out or remove the following code from the initPhysics method
+// bottom
+groundBox.Set(b2Vec2(0,0), b2Vec2(s.width/PTM_RATIO,0));
+groundBody->CreateFixture(&groundBox,0);
+
+// top
+groundBox.Set(b2Vec2(0,s.height/PTM_RATIO), b2Vec2(s.width/PTM_RATIO,s.height/PTM_RATIO));
+groundBody->CreateFixture(&groundBox,0);
+
+// left
+groundBox.Set(b2Vec2(0,s.height/PTM_RATIO), b2Vec2(0,0));
+groundBody->CreateFixture(&groundBox,0);
+
+// right
+groundBox.Set(b2Vec2(s.width/PTM_RATIO,s.height/PTM_RATIO), b2Vec2(s.width/PTM_RATIO,0));
+groundBody->CreateFixture(&groundBox,0);
+</pre>
+
+除了要移除所有的物理墙之外，你还把重力修改的更弱因为你并不希望sprite下落的太快。
+
+编译并运行，你会看到你的水果正在上升和下落！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_tossfruits.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_tossfruits.png" alt="Fruits Galore" title="Fruits Galore" width="480" height="320" class="alignnone size-full wp-image-14445" /></a>
+
+在游戏运行的过程中，你会发现3个问题。
+<ul><li>最终由于cache中没有任何对象，你也没有重设水果的状态，抛水果的动作会停下来</li>
+<li>你切割的次数越多，游戏运行效率就越低。这是因为你没有及时清除被切割的已经落到屏幕外的水果碎片，Box2D仍然在一直模拟它们。</li>
+<li>当你切割水果后，新的碎片是粘在一起的，这是因为你只是简单的把水果分隔成两部分，而没有强行的将它们分开。</li></ul>
+
+我们这就修正这些问题，在<em>HelloWorldLayer.mm</em>中作如下修改：
+
+<pre lang="objc">
+// Add inside the splitPolygonSprite method, right before [sprite deactivateCollisions]
+sprite.state = kStateIdle; 
+
+// Add this method
+-(void)cleanSprites
+{
+    PolygonSprite *sprite;
+    
+    //we check for all tossed sprites that have dropped offscreen and reset them
+    CCARRAY_FOREACH(_cache, sprite)
+    {
+        if (sprite.state == kStateTossed)
+        {
+            CGPoint spritePosition = ccp(sprite.body->GetPosition().x*PTM_RATIO,sprite.body->GetPosition().y*PTM_RATIO);
+            float yVelocity = sprite.body->GetLinearVelocity().y;
+            
+            //this means the sprite has dropped offscreen
+            if (spritePosition.y < -64 && yVelocity < 0)
+            {
+                sprite.state = kStateIdle;
+                sprite.sliceEntered = NO;
+                sprite.sliceExited = NO;
+                sprite.entryPoint.SetZero();
+                sprite.exitPoint.SetZero();
+                sprite.position = ccp(-64,-64);
+                sprite.body->SetLinearVelocity(b2Vec2(0.0,0.0));
+                sprite.body->SetAngularVelocity(0.0);
+                [sprite deactivateCollisions];
+            }
+        }
+    }
+    
+    //we check for all sliced pieces that have dropped offscreen and remove them
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())
+    {
+        if (b->GetUserData() != NULL) {
+            PolygonSprite *sprite = (PolygonSprite*)b->GetUserData();
+            CGPoint position = ccp(b->GetPosition().x*PTM_RATIO,b->GetPosition().y*PTM_RATIO);
+            if (position.x < -64 || position.x > screen.width || position.y < -64)
+            {
+                if (!sprite.original)
+                {
+                    world->DestroyBody(sprite.body);
+                    [self removeChild:sprite cleanup:YES];
+                }
+            }
+        }
+    }
+}
+
+// Add inside the update method, after [self checkAndSliceObjects]
+[self cleanSprites];
+</pre>
+
+这里引入了状态处理。sprite初始为idle（空闲）状态，紧接着toss方法会改变其状态。toss方法只改变idle状态的sprite，最后你把被切割的原sprite的状态还原回idle。
+
+在cleanSprites方法中，首先检查所有的原sprite是否是掉落到屏幕以外，如果是，就在向上抛之前重置它们的状态。接下来检查所有的被切割的碎片是否在屏幕以外，如果是，就销毁它的Box2D body并将其从场景中移除。
+
+切换到<em>HelloWorldLayer.h</em>，在#define random_range(low,high)行之后添加以下内容：
+<pre lang="objc">
+#define midpoint(a,b) (float)(a+b)/2
+</pre>
+
+切换回<em>HelloWorldLayer.mm</em>并对splitPolygonSprite方法作如下修改：
+<pre lang="objc">
+// Add to the top part inside of the if (sprite1VerticesAcceptable && sprite2VerticesAcceptable) statement
+b2Vec2 worldEntry = sprite.body->GetWorldPoint(sprite.entryPoint);
+b2Vec2 worldExit = sprite.body->GetWorldPoint(sprite.exitPoint);
+float angle = ccpToAngle(ccpSub(ccp(worldExit.x,worldExit.y), ccp(worldEntry.x,worldEntry.y)));
+CGPoint vector1 = ccpForAngle(angle + 1.570796);
+CGPoint vector2 = ccpForAngle(angle - 1.570796);
+float midX = midpoint(worldEntry.x, worldExit.x);
+float midY = midpoint(worldEntry.y, worldExit.y);
+
+// Add after [self addChild:newSprite1 z:1]
+newSprite1.body->ApplyLinearImpulse(b2Vec2(2*body1->GetMass()*vector1.x,2*body1->GetMass()*vector1.y), b2Vec2(midX,midY));
+
+// Add after [self addChild:newSprite2 z:1]
+newSprite2.body->ApplyLinearImpulse(b2Vec2(2*body2->GetMass()*vector2.x,2*body2->GetMass()*vector2.y), b2Vec2(midX,midY));
+</pre>
+
+通过施加某种力改变对象的方向和速度，这样被切割时分成的两片就不会贴在一起了。
+
+为了得到方向，你需要计算得到切割线两端的世界坐标和切割线的角度，再计算得到两个垂直此线的标准向量。所有的Box2D角度单位都是按弧度计算的，所以1.570796正好是角度的90的。
+
+接下来，你得到切割线的中心坐标，以此来作为推力的作用点。
+
+参考下面图示：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_impulsediagram.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_impulsediagram.png" alt="Push the Pieces Away from Each Other" title="Push the Pieces Away from Each Other" width="318" height="311" class="alignnone size-full wp-image-14451" /></a>
+
+为了把两片sprite推开，你对它们分别施加了linear impulse（线性冲量），作用点为线段中心，方向相反。此冲量基于每个body的质量，所以两个物体所受的推力基本上是一致的。更大的sprite会得到更大的冲量，更小的sprite会得到更小的冲量。
+
+编译并运行，这次水果被切割的感觉就很不错了，同时游戏可以无尽的玩下去。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_impulseslice.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_impulseslice.png" alt="Slice with Impulse" title="Slice with Impulse" width="480" height="320" class="alignnone size-full wp-image-14452" /></a>
+
+<h2>添加计分系统/h2>
+如果游戏没有明确的目标和合理的结束的话，就不能称之为游戏，所以你需要在合适的地方添加一个计分系统。
+
+你需要根据玩家切割水果的数量计算分数。你会跟玩家3条命，或者说3次机会，当没有被切过的水果飞出屏幕时，就减1条命。
+
+切换到<em>HelloWorldLayer.h</em>并作如下修改：
+<pre lang="objc">
+// Add inside @interface
+int _cuts;
+int _lives;
+CCLabelTTF *_cutsLabel;
+</pre>
+
+切换回<em>HelloWorldLayer.mm</em>并作如下修改：
+
+<pre lang="objc">
+// Add inside the init method, right after [self initSprites]
+[self initHUD];
+
+// Add these methods
+-(void)initHUD
+{
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    
+    _cuts = 0;
+    _lives = 3;
+    
+    for (int i = 0; i < 3; i++)
+    {
+        CCSprite *cross = [CCSprite spriteWithFile:@"x_unfilled.png"];
+        cross.position = ccp(screen.width - cross.contentSize.width/2 - i*cross.contentSize.width, screen.height - cross.contentSize.height/2);
+        [self addChild:cross z:4];
+    }
+    
+    CCSprite *cutsIcon = [CCSprite spriteWithFile:@"fruit_cut.png"];
+    cutsIcon.position = ccp(cutsIcon.contentSize.width/2, screen.height - cutsIcon.contentSize.height/2);
+    [self addChild:cutsIcon];
+    
+    _cutsLabel = [CCLabelTTF labelWithString:@"0" fontName:@"Helvetica Neue" fontSize:30];
+    _cutsLabel.anchorPoint = ccp(0, 0.5);
+    _cutsLabel.position = ccp(cutsIcon.position.x + cutsIcon.contentSize.width/2 +                _cutsLabel.contentSize.width/2,cutsIcon.position.y);
+    [self addChild:_cutsLabel z:4];
+}
+
+-(void)restart
+{
+    [[CCDirector sharedDirector] replaceScene:[HelloWorldLayer scene]];
+}
+
+-(void)endGame
+{
+    [self unscheduleUpdate];
+    CCMenuItemLabel *label = [CCMenuItemLabel itemWithLabel:[CCLabelTTF labelWithString:@"RESTART"fontName:@"Helvetica Neue"fontSize:50] target:self selector:@selector(restart)];
+    CCMenu *menu = [CCMenu menuWithItems:label, nil];
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    menu.position = ccp(screen.width/2, screen.height/2);
+    [self addChild:menu z:4];
+}
+
+-(void)subtractLife
+{
+    CGSize screen = [[CCDirector sharedDirector] winSize];
+    _lives--;
+    CCSprite *lostLife = [CCSprite spriteWithFile:@"x_filled.png"];
+    lostLife.position = ccp(screen.width - lostLife.contentSize.width/2 - _lives*lostLife.contentSize.width, screen.height - lostLife.contentSize.height/2);
+    [self addChild:lostLife z:4];
+    
+    if (_lives <= 0)
+    {
+        [self endGame];
+    }
+}
+</pre>
+
+在interface部分，你设置了切割次数和命的数量。同时你还声明了一个label用来显示玩家当前的分数。
+
+initHUD方法在屏幕的左上角创建了3个标记用来显示玩家的命数。它还放置了一张图片代表分数，分数本身也显示在左上角。
+
+subtractLife方法在标记命数的位置叠加一个新的标记图片，用来代表生命损失，每当此方法被调用，它还检查玩家当前是否还有足够的命数，如果没有，游戏就应该结束了。
+
+endGame方法首先移除对update的schedule以停止游戏逻辑，然后在屏幕中添加restart按钮，如果此按钮被点击，那么游戏就会重新开始。
+
+restart方法只是简单地重新加载场景，并回到游戏的最初的状态。
+
+现在已经创建了所有的方法和变量，是时候把它们加到游戏逻辑中了。
+
+还是在<em>HelloWorldLayer.mm</em>中，作如下修改：
+
+<pre lang="objc">
+// Add to the splitPolygonSprite method, inside the if (sprite1VerticesAcceptable && sprite2VerticesAcceptable) statement
+_cuts++;
+[_cutsLabel setString:[NSString stringWithFormat:@"%d",_cuts]];
+
+// Add to the cleanSprites method, inside the if (spritePosition.y < -64 && yVelocity < 0) statement
+if (sprite.type != kTypeBomb)
+{
+    [self subtractLife];
+}
+</pre>
+
+当一个多边形被成功切割后，分数会增加，显示分数的label会更新。如果有没被切割过的原sprite落到屏幕下，就减少玩家的1条命。
+
+编译并运行，这个游戏接近完成了！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_gameover.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_gameover.png" alt="Game Over!" title="Game Over!" width="480" height="320" class="alignnone size-full wp-image-14453" /></a>
+
+<h2>让游戏更有挑战</h2>
+
+为了让游戏更有趣，你要添加一些炸弹到游戏中。在之前你已经初始化了3颗炸弹了，但目前还没有用到它们。
+
+炸弹是独立的，它们可以在任何时间被抛起。如果一个玩家不小心划到了一颗炸弹，它会爆炸并且减少玩家1条命。
+
+对<em>HelloWorldLayer.mm</em>作如下修改：
+
+<pre lang="objc">
+// Add to the spriteLoop method, inside if (curTime > _nextTossTime), right after PolygonSprite *sprite;
+int chance = arc4random()%8;
+if (chance == 0)
+{
+    CCARRAY_FOREACH(_cache, sprite)
+    {
+        if (sprite.state == kStateIdle && sprite.type == kTypeBomb)
+        {
+            [self tossSprite:sprite];
+            break;
+        }
+    }
+}
+
+// Add to the splitPolygonSprite method, inside the if (sprite.original) statement
+if (sprite.type == kTypeBomb)
+{
+    [self subtractLife];
+}
+else
+{
+//placeholder
+}
+</pre>
+
+这段代码直截了当，和之前和对水果所做的类似。首先为炸弹添加抛的机制，但是这次并不计算抛的类型和已经有多少炸弹正在空中。
+
+炸弹随机被抛起。这里使用一个随机值模8，如果结果等于0，就抛之，这里只有1/8的机会在每次间隔时抛起炸弹。
+
+然后在splitPolygonSprite方法检查sprite是否被切割的位置同样检查炸弹，如果划到了一颗炸弹，那么就调用subtractLife减少玩家1条命。
+
+编译并运行，炸弹就有啦！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_bombsaway.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_bombsaway.png" alt="Bombs Away!" title="Bombs Away!" width="480" height="320" class="alignnone size-full wp-image-14456" /></a>
+
+<h2>使用粒子特效丰富游戏</h2>
+游戏逻辑完成后，你可以集中精力打磨游戏了。你确实应该为游戏添加更多的活力。目前的切割先得很乏味，炸弹不会爆炸，背景也显得不够动态。
+
+你可以使用粒子系统丰富场景。粒子系统允许你使用大量的使用一个sprite的小对象。Cocos2D已经包含了可自定义的粒子系统，配合<a href="http://particledesigner.71squared.com">Particle Designer</a>工具，可以可视化的创建粒子。
+
+在Particle Designer中创建粒子很简单，简单到甚至不用在本教程中提及。作为替代，我已经为你创建好了你需要用到的粒子。Particle Designer将粒子导出为PLIST格式，你所需要做的就是在Cocos2D中加载它们。
+
+如果你还没有，请先下载<a href="http://www.raywenderlich.com/downloads/CutCutCutResourceKit.zip">本教程的资源</a>，在Xcode的Project Navigator中，右键点击Resources并选择“Add Files To CutCutCut”。添加Particles文件夹到项目中。你在做这一步操作时，同样添加Sounds文件夹到工程中。确保“Copy items into destination group's folder”和“Create groups for any added folders”是选中的。
+
+以下是你需要添加到项目中的粒子文件：
+<ul><li>banana_splurt.plist</li>
+<li>blade_sparkle.plist</li>
+<li>explosion.plist</li>
+<li>grapes_splurt.plist</li>
+<li>pineapple_splurt.plist</li>
+<li>strawberry_splurt.plist</li>
+<li>sun_pollen.plist</li>
+<li>watermelon_splurt.plist</li></ul>
+
+以上其中的5个是喷射的，可以称其为“splurt”，它们针对每一种水果被切割时的特效。一种炸弹爆炸时的爆炸粒子。一个跟随刀刃移动的闪光效果，和一个背景上的微尘花粉效果。
+
+切换到<em>HelloWorldLayer.h</em>并在@interface中加入以下内容：
+
+<pre lang="objc">
+CCParticleSystemQuad *_bladeSparkle;
+</pre>
+
+接下来，再切换到<em>HelloWorldLayer.mm</em>，并作如下修改：
+<pre lang="objc">
+// Add inside the init method
+_bladeSparkle = [CCParticleSystemQuad particleWithFile:@"blade_sparkle.plist"];
+[_bladeSparkle stopSystem];
+[self addChild:_bladeSparkle z:3];
+
+// Add inside the initBackground method
+CCParticleSystemQuad *sunPollen = [CCParticleSystemQuad particleWithFile:@"sun_pollen.plist"];
+[self addChild:sunPollen];
+
+//Add inside ccTouchesBegan
+_bladeSparkle.position = location;
+[_bladeSparkle resetSystem];
+
+//Add inside ccTouchesMoved
+_bladeSparkle.position = location;
+
+// Add inside ccTouchesEnded
+[_bladeSparkle stopSystem];
+</pre>
+
+你添加了微尘花粉特效到背景中，并跟随玩家的触摸添加闪光特效。
+
+调用stopSystem会停止粒子系统继续喷射粒子，调用resetSystem可以重新让粒子系统喷射粒子。所有的这些粒子都是无尽的，直到你调用stopSystem为止，它们都不会停止。
+
+接下来是喷射和爆炸特效，对PolygonSprite.h作如下修改：
+<pre lang="objc">
+// Add inside the @interface
+CCParticleSystemQuad *_splurt;
+
+// Add after the @interface
+@property(nonatomic,assign)CCParticleSystemQuad *splurt;
+</pre>
+
+切换到<em>PolygonSprite.mm</em>，在@implementation中添加以下内容：
+
+<pre lang="objc">
+@synthesize splurt = _splurt;
+</pre>
+
+接下来，对PolygonSprite的子类作如下修改（水果和炸弹）：
+
+<pre lang="objc">
+// Add inside Banana.mm init right after setting the type
+self.splurt = [CCParticleSystemQuad particleWithFile:@"banana_splurt.plist"];
+[self.splurt stopSystem];
+
+// Add inside Bomb.mm init right after setting the type
+self.splurt = [CCParticleSystemQuad particleWithFile:@"explosion.plist"];
+[self.splurt stopSystem];
+
+// Add inside Grapes.mm init right after setting the type
+self.splurt = [CCParticleSystemQuad particleWithFile:@"grapes_splurt.plist"];
+[self.splurt stopSystem];
+
+// Add inside Pineapple.mm init right after setting the type
+self.splurt = [CCParticleSystemQuad particleWithFile:@"pineapple_splurt.plist"];
+[self.splurt stopSystem];
+
+// Add inside Strawberry.mm init right after setting the type
+self.splurt = [CCParticleSystemQuad particleWithFile:@"strawberry_splurt.plist"];
+[self.splurt stopSystem];
+
+// Add inside Watermelon.mm init right after setting the type
+self.splurt = [CCParticleSystemQuad particleWithFile:@"watermelon_splurt.plist"];
+[self.splurt stopSystem];
+</pre>
+
+你为每一种类型的PolygonSprite添加对应的粒子系统。
+
+切换回<em>HelloWorldLayer.mm</em>并作如下修改：
+<pre lang="objc">
+// Add this line per fruit and bomb in the initSprites method
+[self addChild:sprite.splurt z:3];
+
+// Add inside the splitPolygonSprite method, inside the if (sprite.original) statement
+b2Vec2 convertedWorldEntry = b2Vec2(worldEntry.x*PTM_RATIO,worldEntry.y*PTM_RATIO);
+b2Vec2 convertedWorldExit = b2Vec2(worldExit.x*PTM_RATIO,worldExit.y*PTM_RATIO);
+float midX = midpoint(convertedWorldEntry.x, convertedWorldExit.x);
+float midY = midpoint(convertedWorldEntry.y, convertedWorldExit.y);
+sprite.splurt.position = ccp(midX,midY);
+[sprite.splurt resetSystem];
+</pre>
+
+在initSprite方法中把所有的粒子添加到游戏层中。另外，当水果或者炸弹被切割时，你在切割线的中间位置创建一个粒子特效。
+
+编译并运行，粒子满天飞！
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_particles.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2012/05/ccc_particles.png" alt="Particles Everywhere" title="Particles Everywhere" width="480" height="320" class="alignnone size-full wp-image-14457" /></a>
+
+<h2>免费的音乐和音效</h2>
+
+你知道的，作为raywenderlich.com的游戏，没有丰富的音乐和音效是不行的！ :]
+
+我们的声音特效不仅仅有助于愉悦心情，同时还能让玩家用来区分游戏里的各种事件。
+
+添加resources文件夹中的Sounds文件夹到你的Xcode工程中。这里边包含了以下几个事件的声音：
+
+<ul><li>炸弹爆炸</li>
+<li>炸弹被抛起</li>
+<li>水果按顺序的被抛起</li>
+<li>水果同时被抛起</li>
+<li>玩家损失一条命</li>
+<li>玩家切割水果分隔成小块儿时</li>
+<li>玩家重复的切割一个水果</li>
+<li>玩家做出轻扫手势时</li>
+<li>背景自然音效</li></ul>
+
+切换到<em>HelloWorldLayer.h</em>并作如下修改：
+
+<pre lang="objc">
+// Add to top of file
+#import "SimpleAudioEngine.h"
+
+// Add inside the @interface
+float _timeCurrent;
+float _timePrevious;
+CDSoundSource *_swoosh;
+
+// Add after the @interface
+@property(nonatomic,retain)CDSoundSource *swoosh;
+</pre>
+
+再切换回<em>HelloWorldLayer.mm</em>，并作如下修改：
+
+<pre lang="objc">
+// Add inside @implementation
+@synthesize swoosh = _swoosh;
+
+// Add inside the dealloc method, before [super dealloc]
+[_swoosh release];
+
+// Add inside the init method
+[[SimpleAudioEngine sharedEngine] preloadEffect:@"swoosh.caf"];
+[[SimpleAudioEngine sharedEngine] preloadEffect:@"squash.caf"];
+[[SimpleAudioEngine sharedEngine] preloadEffect:@"toss_consecutive.caf"];
+[[SimpleAudioEngine sharedEngine] preloadEffect:@"toss_simultaneous.caf"];
+[[SimpleAudioEngine sharedEngine] preloadEffect:@"toss_bomb.caf"];
+[[SimpleAudioEngine sharedEngine] preloadEffect:@"lose_life.caf"];
+_swoosh = [[[SimpleAudioEngine sharedEngine] soundSourceForFile:@"swoosh.caf"] retain];
+[[SimpleAudioEngine sharedEngine] playBackgroundMusic:@"nature_bgm.aifc"];
+_timeCurrent = 0;
+_timePrevious = 0;
+
+// Add inside the update method
+_timeCurrent += dt;
+
+// Add inside the spriteLoop method, after tossing the bomb
+[[SimpleAudioEngine sharedEngine] playEffect:@"toss_bomb.caf"];
+
+// Add inside the spriteLoop method, for both the consecutive tosses
+[[SimpleAudioEngine sharedEngine] playEffect:@"toss_consecutive.caf"];
+
+// Add inside the spriteLoop method, for the simultaneous toss
+[[SimpleAudioEngine sharedEngine] playEffect:@"toss_simultaneous.caf"];
+
+// Add inside splitPolygon if sprite is a bomb
+[[SimpleAudioEngine sharedEngine] playEffect:@"explosion.caf"];
+ 
+// Add inside splitPolygon if sprite is not a bomb
+[[SimpleAudioEngine sharedEngine] playEffect:@"squash.caf"];
+
+// Add before destroying the body in the splitPolygonSprite method
+[[SimpleAudioEngine sharedEngine] playEffect:@"smallcut.caf"];
+
+// Add inside the subtractLife method
+[[SimpleAudioEngine sharedEngine] playEffect:@"lose_life.caf"];
+
+// Add inside ccTouchesMoved before setting _bladeSparkle.position = location
+ccTime deltaTime = _timeCurrent - _timePrevious;
+_timePrevious = _timeCurrent;
+CGPoint oldPosition = _bladeSparkle.position;
+
+// Add inside ccTouchesMoved after setting _bladeSparkle.position = location
+if (ccpDistance(_bladeSparkle.position, oldPosition) / deltaTime > 1000)
+{
+    if (!_swoosh.isPlaying)
+    {
+        [_swoosh play];
+    }
+}
+</pre>
+
+除了普通的游戏声音的代码外，你还考虑了时间因素，基于距离/时间的公式，我们只在玩家手指很快滑动的时候才播放swoosh的音效。同时，你保存了一个swoosh音效的指针，只在它没有播放的时候播放它。
+
+你胜利了！恭喜，你已经制作了一款完整的iphone版切水果游戏！
+http://www.youtube.com/watch?v=BG4lqnFlXKk
+
+<h2>何去何从？</h2>
+
+这是到本系列教程完整的<a href="http://www.raywenderlich.com/downloads/CutCutCutPart3.zip">示例工程</a>。
+
+当然，你还可以再改进此游戏。以下是一些能让游戏更好玩儿更有趣的改进点：
+<ul><li>支持凹多边形，你需要使用三角计算法（把一个凹多边形分成多个凸多边形）。</li>
+<li>让多边形的顶点支持多余8个。</li>
+<li>让PolygonSprite支持使用batch nodes提升效率。</li>
+<li>支持多点触摸和滑动。</li>
+<li>支持iPad。</li>
+<li>为polygon做缓存，这样可以使所用东西被重用。这能够有效提升效率。</li>
+<li>为切割添加追尾彗星效果，并在连续切割时给予玩家额外奖励分数。</li>
+<li>当特殊水果被切割时触发事件。</li>
+<li>更好的随机抛水果的机制，比如从侧面抛出水果。</li></ul>
+
+如果你让游戏更cool的点子，或者对此游戏有什么问题和评论，欢迎到下面的讨论区讨论！
+
+<img src="http://www.raywenderlich.com/downloads/AllenTan.png" class="photo alignleft" />
+<i>本篇教程是由iOS教程组的成员<a href="/?page_id=9#allentan">Allen Tan</a>发布的，Allen是一位IOS开发者和<a href="http://whitewidget.com">White Widget</a>的创始人。</i>

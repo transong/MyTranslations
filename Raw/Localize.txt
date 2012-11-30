@@ -1,0 +1,292 @@
+<i>This is a guest post by <a href="http://twitter.com/#!/regularberry">Sean Berry</a>, a mod on the forums and the developer of <a href='http://www.algebratouch.com'>Algebra Touch</a>.</i></p>
+<i>本篇教程是由<a href="http://twitter.com/#!/regularberry">Sean Berry</a>发布的，他是一位电脑达人，在<a href='http://www.algebratouch.com'>Algebra Touch</a>做开发工作。</i></p>
+
+[caption id="attachment_2877" align="alignright" width="250" caption="Me Gusta Localization!"]<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/localization_small" rel="attachment wp-att-2877"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/localization_small.jpg" alt="Me Gusta Localization!" title="Me Gusta Localization!" width="250" height="245" class="size-full wp-image-2877" /></a>[/caption]
+
+<p>Although the English-speaking App Store market is the largest, there are still plenty of other iPhone users in the world and you can greatly increase their user experience by supporting their native language.
+<p>虽说目前以英语为主的App的市场是最大的，但是世界上还是有很多非英语的用户，可以通过提供本地语言的支持来极大地提升他们的用户体验。
+
+<p>The good news is Apple has made it very easy to make your apps work with multiple languages through some API calls and built-in Xcode support.  The process of doing this is called localization, and that's what I'll be showing you how to do!</p>
+<p>好消息是Apple已经为我们提供了一套简单易用的，Xcode集成的API方法，来为App增加多语言支持。这个过程称为本地化，这就是本期教程我想要教给大家的！</p>
+
+<p>In this tutorial, you will be localizing a sample app I prepared called iLikeIt which was inspired by the rage comics in <a href='http://www.raywenderlich.com/2797/introduction-to-in-app-purchases'>Ray's post about in-app purchases</a>.  The app is very simple - when you tap 'You like?' a face appears, scales up, and fades away.</p>
+<p>在本篇教学中，你将要本地化一款我准备好的示例app，我受到Ray的这篇<a href='http://www.raywenderlich.com/2797/introduction-to-in-app-purchases'>in-app purchases</a>中的暴走漫画的启发制作的这个app。这个app非常简单 - 当你点击‘You Like?’时，一个笑脸出现并缩放，最终渐隐消失。</p>
+
+<p>But right now it's English only - so vamos a traducir!</p>
+<p>但是目前它只支持英语，所以 vamos a traducir！（西班牙语，意思为“我们要翻译了！”） </p>
+
+<p>This tutorial will be using Xcode 4, so if you haven't upgraded already, why not use this as an excuse to do so?</p>
+<p>本教程使用Xcode 4，所以如果你还没升级它，为什么不借此机会升级呢？</p>
+
+<h2>Getting Started</h2>
+<h2>准备开始</h2>
+
+<p>The first step is to <a href="http://d1xzuxjlafny7l.cloudfront.net/downloads/iLikeIt-pre-tutorial.zip">download the iLikeIt starter project</a> that we'll be localizing in this tutorial.</p>
+<p>第一步请先下载<a href="http://d1xzuxjlafny7l.cloudfront.net/downloads/iLikeIt-pre-tutorial.zip">iLikeIt初始工程</a>，我们将要在之后的教程中将它本地化。</p>
+
+<p>Compile and run the app, and you should see the following appear:</p>
+<p>编译并运行，你将会看到如下所示：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/end-result-english" rel="attachment wp-att-2878"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/end-result-english.jpg" alt="Non-localized iPhone App" title="Non-localized iPhone App" width="320" height="480" class="alignnone size-full wp-image-2878 bordered" /></a>
+
+<p>
+We have 3 things to localize here:
+我们有3个需要本地化的项目，它们是：
+<ul>
+<li>Title text: 'Hello!'</li>
+<li>标题文字: 'Hello!'</li>
+<li>UI Element: 'You like?' button</li>
+<li>UI元素：'You like?'按钮</li>
+<li>and finally the image (it has text!)</li>
+<li>最后是那个图片（它上边有文字！）</li>
+</ul>
+</p>
+
+<h2>Separating text from code</h2>
+<h2>将文字从代码中剥离</h2>
+
+<p>Like most projects, this project has some hardcoded strings in the code.  We need to pull all of these hardcoded strings into a separate file so we can localize them.</p>
+<p>和大多数项目一样，本项目也将字符串写死在代码中。我们需要将这些写死的字符串从代码中剥离出来，这样才能本地化它们。</p>
+
+<p>The way you do this in Xcode is create a ".strings" file to contain all of the strings your projects needs.  Then you'll replace the hardcoded strings with a function call to look up the appropriate string from the ".strings" file based on the current language.</p>
+<p>在Xcode中实现此功能是通过新建一个后缀为“.strings”的文件，让其包含项目需要的字符串。然后把之前写死的字符串，使用适当的函数调用，替换为“.strings”文件中相应的字符串。</p>
+
+<p>Let's try this out.  Select the iLikeIt group in Xcode, and go to File\New\New File.  Choose iOS\Resource\Strings File, and click Next, as shown in the screenshot below.  Name the new file Localizable.strings, and click Save.</p>
+<p>我们这就试试看。在Xcode中选择iLikeIt group，然后选择File\New\New File。选择iOS\Resource\Strings File，点击Next，如下图所示。将其命名为Localizable.strings，点击Save。</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/strings-file" rel="attachment wp-att-2879"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/strings-file.jpg" alt="Adding a .strings file to your Xcode project" title="Adding a .strings file to your Xcode project" width="550" height="175" class="alignnone size-full wp-image-2879" /></a>
+
+<p>Note that Localizable.strings is the default filename iOS looks for when dealing with localized text.  If you don't use this, you'll have to specify the name of our .strings file every time.</p>
+<p>注意Localizable.strings是iOS寻找本地字符串默认的文件名。如果你不使用此名字，那么你在还需要额外指定.strings文件的名字。/p>
+
+<p>The format for the strings file is:</p>
+<p>strings文件的格式是：</p>
+
+<pre class="command">
+"KEY" = "CONTENT";
+</pre>
+
+<p>
+So for our 'Hello!' text add in:</p>
+
+<pre class="command">
+"TITLE" = "Hello!";
+</pre>
+
+<p>
+Now switch to iLikeItViewController.m, and find the viewDidLoad method. Right now it sets the text as:</p>
+现在切换到iLikeItViewController.m，找到viewDidLoad方法。目前此处设置字符串的方式为：</p>
+
+<pre lang="objc">
+self.titleLabel.text = @"Hello!";
+</pre>
+
+<p>We want it to instead read from our .strings file. To do that, change the current line to use a macro called NSLocalizedString as shown below:</p>
+<p>我们想要从.strings文件读出我们的字符串。为了完成它，改变上行内容使用NSLocalizedString调用，如下所示：</p>
+
+<pre lang="objc">
+self.titleLabel.text = NSLocalizedString(@"TITLE", nil);
+</pre>
+
+<p>If you're curious what the NSLocalizedString macro does, control-click on NSLocalizedString and choose Jump to Definition.  You'll find that it's defined as follows:</p>
+<p>如果你对NSLocalizedString有好奇的话，control单击NSLocalizedString并选择Jump to Definition。你会发现它是如下定义的：</p>
+
+<pre lang="objc">
+#define NSLocalizedString(key, comment) \
+    [[NSBundle mainBundle] localizedStringForKey:(key) value:@"" table:nil]
+</pre>
+
+<p>So basically, it's using the localizedStringForKey method to look up the string for the given key, in the current language.  It passes nil for the table name, so it uses the default strings filename (Localizable.strings).  For full details, check out Apple's <a href="http://developer.apple.com/library/mac/#documentation/Cocoa/Reference/Foundation/Classes/NSBundle_Class/Reference/Reference.html">NSBundle Class Reference</a>.</p>
+<p>本质上地，它是调用了localizedStringForKey方法根据给定的key查找当前语言对应的字符串。它的table参数为nil，所以它会使用默认的strings文件名（Localizable.strings）。想获得更多的内容，请参考Apple的<a href="http://developer.apple.com/library/mac/#documentation/Cocoa/Reference/Foundation/Classes/NSBundle_Class/Reference/Reference.html">NSBundle Class Reference</a>。</p>
+
+<p>One other thing to note.  The macro takes a comment as a parameter, but seems to do nothing with it!  This is because instead of manually typing in each key/value pair into the Localizable.strings value like we've been doing, you can use a tool that comes with the iPhone SDK called genstrings to do this automatically (which can be quite convenient for large projects).  
+<p>还有一个值得注意的事。这个宏使用了一个叫做comment的参数，但是看起来它并没有做任何事儿！这是因为除了在Localizable.strings手动输入key/pair的方法外，还有一种通过使用iPhone SDK提供的工具自动生成字符串的方法，对于大项目来说，这种方法非常方便。
+
+<p>If you use this method, you can put a comment for each string that will appear next to the default strings as an aid for the translator.  For example, you could add a comment indicating the context where the string is used.</p>
+<p>如果你使用了此方法，你可以为每一个字符串添加一个comment作为翻译者的辅助参考说明。例如，你可以注明这个字符串是在什么上下文位置使用的。</p>
+
+<p>Enough background info - let's try it out!  Build and run your project, and it should say "Hello!" on the main screen just as before. But where's the Spanish? Now that we're set up it's a cinch.</p>
+<p>背景知识已经介绍足够多了，我们这就试试看！编译并运行项目，它会像往常一样在主屏幕显示“Hello！”。但是西班牙语版的在哪儿呢？我们已经把准备工作做的很充足了，这一步会很容易。</p>
+
+<h2>Adding a Spanish Localization</h2>
+<h2>添加西班牙语本地化支持</h2>
+<p>
+To add a Spanish localization, start by selecting Localizable.strings, and open up the Info pane.  You can do this by selecting the third tab in the View section in the top toolbar, and selecting the first tab in the top section, as shown in the screenshot below.
+</p>
+<p>
+首先选择Localizable.strings，然后打开Info面板。完成这一步你需要点击Xcode界面顶部的工具栏的第三项打开属性界面，然后选择顶部的第一个tab页，如下所示：
+</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/infopane" rel="attachment wp-att-2880"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/infopane.jpg" alt="The location of the info pane in Xcode 4" title="The location of the info pane in Xcode 4" width="550" height="223" class="alignnone size-full wp-image-2880" /></a>
+
+<p>To add support for another language, simply click on the '+' in that 'Localization' pane on the right. The first time will create a localization for English. Note it might deselect Localizable.strings after you click it, so select Localizable.strings again, click the '+' button again, and choose 'Spanish (es)' from the dropdown.</p>
+<p>添加另一种语言支持的步骤为，首先点击右侧的‘Localization’面板中的‘+’按钮。第一次会创一个英语的localization。注意再你执行完此步骤后有可能失去对Localizable.strings的选择，再次选择它，再次点击‘+’按钮，从下拉列表中选择‘Spanish(es)’</p>
+
+<p>At this point, Xcode has set up some directories containing a separate version of Localizable.strings for each language you selected, behind the scenes.  To see this for yourself, open your project folder in Finder, and you'll see the following:</p>
+<p>到此为止，Xcode已经为每种语言创建了各自版本的Localizable.strings。如果你想看看它是怎么在幕后工作的，在Finder中打开此项目，你会看到如下内容：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/project-folder-1" rel="attachment wp-att-2881"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/project-folder-1.jpg" alt="Localized subfolders in project folder" title="Localized subfolders in project folder" width="309" height="229" class="alignnone size-full wp-image-2881" /></a>
+
+<p>See 'en.lproj' and 'es.lproj'? They contain our language-specific versions of files.</p>
+<p>看到‘en.lproj’和‘es.lproj’了吗？它们包含了每种语言特定的版本的文件。</p>
+
+<p>'en' is the localization code for English, and 'es' is the locazliation code for Spanish. If you're curious, here's the <a href='http://www.loc.gov/standards/iso639-2/php/English_list.php'>full list of language codes</a>.</p>
+<p>‘en’是English的本地化编码，‘es’是Spanish的本地化编码。如果你对此感到好奇，这是<a href='http://www.loc.gov/standards/iso639-2/php/English_list.php'>语言编码详细列表</a>。</p>
+
+<p>When iOS wants to get the English version of a file, it will look in en.lproj, but when it wants the Spanish version of a file it will look in es.lproj.
+</p>
+<p>当iOS想要得到英语版本的文件时，它会从en.lproj中寻找，如果它想得到西班牙语版本的文件就会从es.lproj中去找。
+</p>
+
+<p>
+It's that simple! Put your resources in the appropriate folder and iOS will do the rest.
+</p>
+<p>
+就是这么简单！把你的资源放到合适的文件夹中，iOS会替你完成余下的工作。
+</p>
+
+<p>
+Go back to Xcode and click on the arrow next to Localizable.strings so it shows the sub-elements.  You'll see now we're working with two versions of this file:</p>
+回到Xcode并点击Localizable.strings的下箭头，让它显示出子项目。你会看到我们正在使用两个版本的文件：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/mult-files" rel="attachment wp-att-2882"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/mult-files.jpg" alt="Multiple versions of file - one for each localization" title="Multiple versions of file - one for each localization" width="234" height="88" class="alignnone size-full wp-image-2882" /></a>
+
+<p>
+To change the text for Spanish, select 'Localizable.strings (Spanish)' and change the text to read:</p>
+点击‘Localizable.strings (Spanish)’并把文本替换成以下内容：</p>
+
+<pre class="command">
+"TITLE" = "Hola!";
+</pre>
+
+<p>Your app is worldly now! Let's make sure it worked...</p>
+<p>你的app现在更加世界化了！我们这就试试看这个功能是否工作正常...</p>
+
+<p>To make your simulator show Spanish, go into Settings.app and choose General -> International -> Language -> Espanol.</p>
+<p>进入Settings（设置）程序，选择General（通用）-> International（多语言环境） -> Language（语言） -> Espanol，就可以让模拟器显示出西班牙文了。</p>
+
+<p>
+Delete the app and select Project\Clean to get a fresh build and install. When you build and run you should see Hola!:</p>
+<p>
+删除app并选择Project\Clean来执行一次全新的编译和安装。当你编译并运行后你会看到Hola!的字样：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/hola" rel="attachment wp-att-2883"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/hola.jpg" alt="Localized UILabel" title="Localized UILabel" width="302" height="178" class="alignnone size-full wp-image-2883 bordered" /></a>
+
+<h2>Adjust UI Elements</h2>
+<h2>调整UI元素</h2>
+
+<p>The next thing to localize is that button text. For Spanish let's have it say '~Es bueno?~'</p>
+<p>接下来要本地化的是按钮上的文字。西班牙语对应的内容应该为‘~Es bueno?~’</p>
+
+<p>The issue here is that we want our button border to be relatively tight around the text. 
+This wasn't an issue with our title label because there was no constraint on its width, but here we'll need to adjust the size of the button to make it look nice.
+</p>
+<p>这个出现了一个问题，我们想让按钮的宽度与按钮上的文字保持一致。对于标题label来说，这并不是问题，因为它没有宽度边界限制。但是对于按钮我们需要调整它的尺寸以让它看起来更好。
+</p>
+
+<p>
+If we simply edit the text in viewDidLoad it will look bad, check it out:</p>
+<p>
+如果我们只是修改viewDidLoad中的文字，它会看起来很烂，如下图所示：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/button-text-issue" rel="attachment wp-att-2892"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/button-text-issue.jpg" alt="Localized text doesn't fit issue" title="Localized text doesn't fit issue" width="382" height="228" class="alignnone size-full wp-image-2892" /></a>
+
+<p>Unacceptable! So let's add a localization to our xib and make the button bigger in Spanish.</p>
+<p>完全不可接受！所以我们要添加一个本地化的xib，来让按钮在西班牙语模式下更宽。</p>
+
+<p>Select iLikeItViewController.xib and in the info pane on the right, click the '+' button to add a Localization and choose Spanish.  Note you may need to scroll down in the Info pane because it shares that side with some Interface Builder content.</i>
+</p>
+<p>选择iLikeItViewController.xib并在右侧的info面板中，点击‘+’按钮添加一个本地化并选择Spanish。注意你可能需要向下滑动Info面板以让其显示，因为它会共享其他的一些Interface Builder的内容。</i>
+</p>
+
+<p>Now we have copy of iLikeItViewController.xib in our Spanish folder (es.lproj).  Select iLikeItViewController.xib (Spanish), and edit the button text in that version to say '~Es bueno?~' (it should resize the button by default).
+</p>
+<p>现在我们在Spanish文件夹（es.lproj）中有了iLikeItViewController.xib的一份copy。选择iLikeItViewController.xib (Spanish)，把按钮上的文字改为‘~Es bueno?~’（默认地它会自动调整按钮的大小）。
+</p>
+
+<p>Tip: To add special chararacters on the Mac such as upside down question marks, one way is to go to System Preferences\Keyboard, and select "Show Keyboard & Character Viewer in menu bar".  You will see a new option in your menu bar as shown below:</p>
+<p>小技巧：想要在Mac上输入例如朝下的问号这种特殊字符，方法是前往System Preferences（系统偏好设置）\Keyboard（键盘），并选择Show Keyboard（显示键盘）& Character Viewer in menu bar（显示字符显示程序）。你会看到一个新的选项出现在你的菜单栏中，如下所示：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/characterviewer" rel="attachment wp-att-2884"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/CharacterViewer.jpg" alt="Showing Character Viewer in toolbar" title="Showing Character Viewer in toolbar" width="427" height="111" class="alignnone size-full wp-image-2884" /></a>
+
+<p>You can use this to browse through special characters and double click them to add them into any app, including Xcode.</p>
+<p>你可以使用它来浏览特殊字符，双击来选择它到你的app中，包括Xcode。</p>
+
+<p>
+Once you've set up your label, delete the app and select Project\Clean to get a fresh build and install. (You might even have to close and reopen the project in Xcode for Xcode to pick up the changes). Then build and run your app to see the following:</p>
+<p>
+当你设置完成你的label后，删除app并再次通过Project\Clean重新编译安装（你也许需要重启Xcode才能让这些新设置生效）。然后编译并运行你会看到如下所示：</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/button-too" rel="attachment wp-att-2885"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/button-too.jpg" alt="UIButton localized with Interface Builder" title="UIButton localized with Interface Builder" width="246" height="155" class="alignnone size-full wp-image-2885 bordered" /></a>
+
+<h2>Images</h2>
+<h2>图片</h2>
+
+<p>Since we have text in our image we need to localize it. Having some English in an otherwise Spanish app would look amateur.</p>
+<p>我们在图片中也有文字所以我们要本地化它。在一个西班牙语的app中有些英语会先得很外行。</p>
+
+<p>Select 'ilike.jpg' and add a localization for Spanish (you're an old pro at this now!)</p>
+<p>选择‘ilike.jpg’并添加一个Spanish的localization（你应该已经很熟悉这个步骤了！）</p>
+
+<p>Check out the project folder. 'ilike.jpg' has been added to the English folder (en.lproj) and then copied to the Spanish folder (es.lproj). To make a different image show up for the Spanish version, we simply overwrite the image in the Spanish folder.</p>
+<p></p>
+<p>检查一下项目文件夹，‘ilike.jpg’已经在English文件夹（en.lproj）中了并且Spanish文件夹（es.lproj）中也有一份拷贝。为了让西班牙版本的图片有所不同，我们只需要简单地把西班牙文件夹中的图片替换掉。</p>
+<p></p>
+
+<p>Download this image:</p>
+<p>请下载以下图片：</p>
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/megusta" rel="attachment wp-att-2886"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/megusta.jpg" alt="Me Gusta!" title="Me Gusta!" width="250" height="165" class="alignnone size-full wp-image-2886" /></a>
+
+<p>I've also included it in the starting project, saved as megusta.jpg.</p>
+<p>我也在起始工程中保存了一份，名字为megusta.jpg。</p>
+
+<p>Rename it to ilike.jpg and move it into the Spanish folder (es.lproj), overwriting the copied English version.</p>
+<p>将其重命名为ilike.jpg并把它移动到Spanish文件夹（es.lproj）中，覆盖掉原来的文件。</p>
+
+<p>Clean and rebuild and you should be done!</p>
+<p>Clean并重新编译就大功告成了！</p>
+
+<a href="http://www.raywenderlich.com/2876/how-to-localize-an-iphone-app-tutorial/end-result-spanish" rel="attachment wp-att-2887"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/03/end-result-spanish.jpg" alt="Localized iPhone App" title="Localized iPhone App" width="320" height="480" class="alignnone size-full wp-image-2887 bordered" /></a>
+
+<p>Congrats! That's the bulk of localization.</p>
+<p>恭喜！你已经学会了本地化的大部分内容了。</p>
+
+<h2>Gratuitous Bonus</h2>
+<h2>免费额外奖励</h2>
+
+<p>For a final bonus, say you want to translate the name of the app. Your Info.plist has a special file in which you can put string overrides that need to be different from language to language called InfoPlist.strings.  So to make the app name different for spanish, localize Supporting Files\InfoPlist.strings and insert the following in the Spanish version:</p>
+<p>如果你想翻译app的名字该怎么办呢？你的Info.plist指定了一个特殊文件，在这里你可以为app指定不同语言的名字。所以我们给他起一个不同的西班牙语名字，对Supporting Files\InfoPlist.strings文件添加本地化并选择Spanish版本：</p>
+
+<pre class="command">
+"CFBundleDisplayName" = "Me Gusta";
+</pre>
+
+<p>That will change the name of the app as it appears on the Springboard.</p>
+<p>这样就可以改变在Springboard中app的名字了。</p>
+
+<p>...which brings up something to consider when localizing. The English version had a prefix of 'i' (as a nod to Apple's naming convention).
+<p>...当本地化时这里遇到了一个问题。英文版本的名字有个‘i’前缀（和苹果的命名习惯保持一致的）。
+
+When translated to Spanish that joke is lost. However, it was a terrible joke and the Spanish version is better for it!
+但当翻译为西班牙版本时，这个笑点就不复存在了。其实，这是一个很糟的笑话，西班牙版本的名字必然它更好！
+</p>
+
+<h2>Where To Go From Here?</h2>
+<h2>何去何从？</h2>
+
+<p>Here is a <a href="http://d1xzuxjlafny7l.cloudfront.net/downloads/iLikeIt.zip">sample project</a> with all of the code we've developed in the above tutorial.</p>
+<p>这是到目前为止的<a href="http://d1xzuxjlafny7l.cloudfront.net/downloads/iLikeIt.zip">示例工程</a>，其中包含以上所有的代码。</p>
+
+<p>Now that you know the basic technique of localizing an iPhone app, try to keep it in mind when designing your next app.  It could be quite easy and your non-English speaking audience will be thankful!
+<p>现在你了解了本地化一款iPhone app的基本技术了，试着再制作你的下一款app时使用它。这样做会让非英语的用户非常愉悦！
+
+<p>For the actual translation, you might be able to get away with using Google's free translation service at <a href='http://www.google.com/translate'>http://www.google.com/translate</a>. But I would only use that for simple words in buttons or labels. A more professional option is <a href='http://www.mygengo.com'>myGengo</a>, a 'matchmaking' type service I've had success with in the past. You submit a translation job and any number of freelancers can accept and translate it for you. The turnaround time is fairly quick (all of my jobs were done within 24 hours) and it's affordable.</p>
+<p>对于翻译本身来说，你可能目前使用的Google的免费的翻译服务在<a href='http://www.google.com/translate'>http://www.google.com/translate</a>。但是我只在一些简单的翻译上使用它，比如按钮或者标签。一个更加专业的选择是<a href='http://www.mygengo.com'>myGengo</a>，一个‘自动匹配式’的翻译服务，我对它的表现非常满意。你提交一个你需要翻译的工作内容，随后会有任意数量的自由工作者接受这份工作并为你翻译。这个流程非常的快（我所有的工作都在24小时内完成了）而且也不贵。</p>
+
+<p>If you have any questions, or advice for others localizing their apps, please join in on the forum discussion below!</p>
+<p>如果你有任何问题或者对他人的本地化有什么建议，欢迎加入下方的讨论区！</p>
+
+<img class="alignleft photo" src="http://d1xzuxjlafny7l.cloudfront.net/downloads/SeanBerry.jpg"/>
+
+<i>This is a guest post by <a href="http://twitter.com/#!/regularberry">Sean Berry</a>, a mod on the forums and the developer of <a href='http://www.algebratouch.com'>Algebra Touch</a>.</i></p>
+<i>本篇教程是由<a href="http://twitter.com/#!/regularberry">Sean Berry</a>发布的，他是一位电脑达人，在<a href='http://www.algebratouch.com'>Algebra Touch</a>做开发工作。</i></p>

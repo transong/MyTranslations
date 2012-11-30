@@ -1,0 +1,518 @@
+[caption id="attachment_5487" align="alignright" width="250" caption="Learn how to make a turn-based game with Game Center in iOS 5!"]<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/iOS_feast_turnbasedgaming.jpg"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/iOS_feast_turnbasedgaming.jpg" alt="Learn how to make a turn-based game with Game Center in iOS 5!" title="Learn how to make a turn-based game with Game Center in iOS 5!" width="250" height="250" class="size-full wp-image-5487" /></a>[/caption]
+
+<em>更新 2012/10/24:</em> 如果你想要本教程的iOS 6和Xcode 4.5的更新版本，请参考<a href="/?page_id=5107">iOS 5 by Tutorials Second Edition</a>！
+
+<em>来自Ray的注释</em> 这是<a href="/?p=5113">iOS 5 Feast</a>的第六篇！同时是我们的新书<a href="/?page_id=5107">iOS 5 By Tutorials</a>中相应章节的免费预览版。希望你喜欢！
+
+<i>本篇教程是由iOS教程组成员<a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>发布的，Jacob是一位独立游戏开发者，经营着<a href="http://indieambitions.com/">Indie Ambitions</a>。请看看他最新的app <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
+
+在iOS 5中，Game Center引入了全新的API，可以用来制作一种类型的游戏：turn-based games（回合制游戏）！
+
+这些新API非常适合棋牌类游戏，战棋类游戏，猜字游戏，以及其他常见的回合制游戏。在游戏中，你可以在你的回合中行动，或者等待你的朋友行动，然后当你的回合到来时收到提醒。
+
+在本篇教程中我们会制作一个简单的基于UIKit的游戏“Spinning Yarn”，在这个游戏里，你可以和你的朋友们一起编写一个故事。
+
+这是一个两部分的教程，在第一部分中，我们要做一些基础工作并实现自动匹配游戏。在第二部分中，我们要完成回合并实现简单的回合制游戏！
+
+注意，为了达到本教程最好的效果，你需要有两台不同的设备和两个不同的Game Center沙盒帐号。我知道这对于测试来说比较麻烦，但是对于Game Center开发来说，这确实是个不幸的事实。
+
+现在轮到你的回合了：继续阅读来制作一个很cool的turn-based游戏吧！
+
+<!--more-->
+
+<h2>Turn-Based 游戏总揽</h2>
+
+在一个turn-based游戏中，同一时刻只能有一个玩家影响游戏的状态。这个玩家拿着指挥棒，或者说是掌握着游戏状态。他们会开始一个回合，最终会改变游戏状态，然后把这个最新的游戏状态传递出去。
+
+然而，其他不在他们回合中的玩家也可以观察比赛。因为游戏，或者是比赛，不需要我们持续的关注，但是却可以被浏览。我们可以在等待的时候干些别的事情，我们同时可以处在很多游戏中。因为以上原因，在我们的游戏中将允许玩家在他们目前所处的比赛中自由切换。
+
+以下是Turn-Based Gaming API的主要的类，在本篇教程中我们会详细加以说明：
+
+<ul>
+<li><em>GKTurnBasedMatch</em>: 包含一场比赛所有的信息和游戏状态。我们将要使用这个对象来记录比赛玩家，比赛状态，以及谁目前正在回合中和谁正在游戏的信息。</li>
+<li><em>GKTurnBasedMatchmakerViewController</em>: 这是我们用来跟比赛交互最主要的UI元素。在不同比赛间切换，创建新比赛等。我们将使用它作为我们的主要控制台。</li>
+<li><em>GKTurnBasedEventHandlerDelegate</em>:  我们将要写一个辅助类来实现此接口，可以实现几个功能：在回合从玩家到玩家之间传递时得到通知；被邀请加入一个新的游戏；或者游戏结束。</li>
+</ul>
+ 
+注意Game Center app会自动地记录我们当前在和谁一起游戏和我们游戏的其他信息，所以玩家总是可以切换到Game Center来查看他们游戏的状态。
+
+<h2>SpinningYarn 游戏</h2>
+
+如果你还记得在小学的时光，你可能玩过一种练习写作能力的游戏，每个孩子从头开始写一个故事。一段时间过后，你将你的故事传给邻桌的同学，同时他也把他的故事给你。你读到了他写的故事，然后由你继续写他的故事。这个流程来来回回几个回合之后就能得到一个完整的故事，一般都会是很欢乐的收场！
+  
+这就是我们将要制作的turn-based游戏的原型。我已经为你准备好了包含所有UI的起始工程，所以我们可以集中注意力在Turn-Based Gaming API上了。
+
+首先请下载<a href="http://www.raywenderlich.com/downloads/TurnBasedResources.zip">本篇教程所需资源</a>，然后在其中找到starter project。在Xcode中打开并运行它。你会看到如下的UI界面：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/StarterCode.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/StarterCode.png" alt="Turn Based Gaming Starter Project" title="Turn-Based Gaming Starter Project" width="320" height="480" class="alignnone size-full wp-image-5481" /></a>
+
+目前这个工程只包含一个显示示例文字的text view，和一个在屏幕底部的输入框，你可以在其中输入文字。注意它目前还什么都做不了呢，只包含一些占位代码。这个app还有一个漂亮的纸质背景（感谢Flickr的playingwithbrushes！）。
+
+浏览一下ViewController.xib，看看UI是怎么组织的，并通过ViewController.m查看部分代码（目前还是非常简单的）。我们将从此开始把这个工程转变为一个完整功能的游戏。
+
+<h2>配置 Game Center</h2>
+
+在继续写Game Center代码前，你需要做以下几件事：
+
+<ol>
+<li>创建并设置App ID</li>
+<li>在iTunes Connect中注册你的app</li>
+</ol>
+
+让我们按以上流程完成配置工作。
+
+<em>创建并设置App ID</em>
+
+创建并设置一个App ID。你需要登录到iOS Dev Center，然后从那里进入到iOS Provisioning Portal中。
+
+在这里，选择App IDs分页，并为你的app创建一个新的App ID，类似如下图所以（除了你需要选择一个不同的值以外）：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/New-App-ID.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/New-App-ID-500x319.png" alt="Creating a new App ID in the iOS Provisioning Portal" title="Creating a new App ID in the iOS Provisioning Portal" width="500" height="319" class="alignnone size-large wp-image-5482" /></a>
+
+最重要的部分是Bundle Identifier，你需要将其设置为一个唯一的字符串（不能和我的用的一样）。通常使用使用你的域名加上一个游戏相关的字符串可以很好的避免命名冲突。
+
+当你完成后，点击Submit。然后打开SpinningYarn的Xcode project，选择spinningyarn target，在Summary分页中设置你的Bundle identifier为你刚刚在iOS Provisioning portal中设置的值，如下所示（注意你需要填入一个不同的值）：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Set-Bundle-in-Project.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Set-Bundle-in-Project-500x391.png" alt="Setting the bundle identifier in Xcode" title="Setting the bundle identifier in Xcode" width="500" height="391" class="alignnone size-large wp-image-5483" /></a>
+
+最后需要注意的是，Xcode经常在你变更bundle identifier之后出现莫名错误，所以为了保证一切正常，请完成以下流程：
+
+<ul>
+<li>删除模拟器和设备上的任何此app的拷贝。</li>
+<li>如果模拟器在运行，退出它。</li>
+<li>在Xcode中执行一次Project\Clean操作。</li>
+</ul>
+
+祝贺你，现在你已经有了App ID，并且你的app已经配置好了！接下来你需要在iTunes Connect中注册你的app并启用Game Center。
+
+<em>在iTunes Connect中注册你的app</em>
+
+接下来的步骤是登录iTunes Connect并为你的app创建一个入口。
+
+当你登录进iTunes Connect后，选择Manage Your Applications，然后点击左上角蓝色的“Add New App”按钮。
+
+在第一个屏幕中，为App Name输入Spinning Yarn，为SKU Number输入311，并选择你刚刚创建过的bundle ID，如下所示：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/New-App-in-iTunes.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/New-App-in-iTunes-500x247.png" alt="Creating a new App in iTunes" title="Creating a new App in iTunes" width="500" height="247" class="alignnone size-large wp-image-5484" /></a>
+
+点击continue，然后根据提示框设置一些你的app的基本信息。注意你需要修改name，因为我已经使用了Spinning Yarn了 :]
+
+不要太纠结这些填入的值具体是什么，因为之后你还可以再修改它们，目前，你只需要填入一些内容，让iTunes Connect让我们能继续下去即可。
+
+当你完成后，点击Save，如果一切顺利的话会看到“Prepare for Upload”状态，如下所示：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Ready-to-Upload.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Ready-to-Upload-500x292.png" alt="App in Ready to Upload Stage" title="App in Ready to Upload Stage" width="500" height="292" class="alignnone size-large wp-image-5485" /></a>
+
+点击右上角蓝色的“Manage Game Center”按钮，点击最大的那个蓝色的“Enable”按钮，点击“Done”，就完成了，现在你的app就可以使用Game Center了，同时你也可以写些代码了！
+
+<div class="note"><em>更新 6/3/12</em> 来自论坛的RedQuark指出这并不再是唯一的途径： 
+
+<i>“问题解决了！还有另外一处地方可以在iTunes Connect中启用Game Center。点击你的app图标下的“View Details”（在“Versions”后也有一个启用Game Center）”。这一点应该被加入到教程中来。
+
+不过事实是这样的：我已经设置过了，但不知为何，iTunes Connect会自己把它们置回原来的状态。现在如果它再发生，我至少知道该去哪里找到它们了。
+
+顺便提一下，在“Manage Game Center”部分中，你可以已经注意到有设置Leaderboards（排行榜）和Achievements（成就）的选项。我们并不会在本教程中使用它们，但如果你感兴趣，可以在这里配置它们！
+
+<h2>验证本地玩家的策略</h2>
+
+当你的游戏启动后，第一件要做的事儿就是验证本地玩家。
+
+你可以把这一步理解为“把玩家登录到Game Center”。如果他已经登录了，就会显示一个“Welcome back”的欢迎界面，否则，就应该提示玩家输入用户名和密码。
+
+验证本地玩家很简单。你只需要调用authenticateWithCompletionHandler。你可以传递一个代码block作为参数，当验证完成时会自动调用。
+
+但是有个特殊情况，玩家可以通过另一种方式登录或登出。他可以使用你的app的同时，切换到Game Center app，从那里登录或登出，然后再切换回你的app。
+
+所以你的app需要知道验证状态的变化。你可以通过注册一个“authentication changed” notification来完成它。
+
+所以，我们验证玩家的策略如下：
+
+
+<ul>
+<li>创建一个单例对象，封装所有Game Center相关的代码。</li>
+<li>当这个单例对象初始化时，它会注册一个“authentication changed” notification。</li>
+<li>游戏会调用这个单例对象的方法来验证玩家。</li>
+<li>当玩家被验证后，“authentication changed”回调函数会被调用。</li>
+<li>这个回调会记录玩家是否验证过了。</li>
+</ul>
+
+现在你有了理论的支持，让我们实现它吧！
+
+<h2>验证本地玩家：实现</h2>
+
+在SpinningYarn的Xcode工程中，新建一个Objective-C class模版的文件。将其命名为GCTurnBasedMatchHelper并继承NSObject。
+
+然后把GCTurnBasedMatchHelper.h替换为以下内容：
+
+<pre lang="objc">
+#import <Foundation/Foundation.h>
+#import <GameKit/GameKit.h>
+
+@interface GCTurnBasedMatchHelper : NSObject {
+    BOOL gameCenterAvailable;
+    BOOL userAuthenticated;
+}
+
+@property (assign, readonly) BOOL gameCenterAvailable;
+
++ (GCTurnBasedMatchHelper *)sharedInstance;
+- (void)authenticateLocalUser;
+
+@end
+</pre>
+
+以上代码首先import了GameKit的头文件，然后创建了两个boolean变量，一个用来指示game center在本设备上是否可用，另一个用来指示当前玩家是否被验证了。
+
+另外还创建了一个game center available的属性、一个获取单例的方法、和一个验证本地玩家的方法（会在app启动时调用）。
+
+切换到GCTurnBasedMatchHelper.m并在@implementation后添加以下内容：
+
+<pre lang="objc">
+@synthesize gameCenterAvailable;
+
+#pragma mark Initialization
+
+static GCTurnBasedMatchHelper *sharedHelper = nil;
++ (GCTurnBasedMatchHelper *) sharedInstance {
+    if (!sharedHelper) {
+        sharedHelper = [[GCTurnBasedMatchHelper alloc] init];
+    }
+    return sharedHelper;
+}
+</pre>
+
+首先synthesize了gameCenterAvailable属性，然后定义了单例方法以获取类的单例。
+
+注意有很多的实现单例的方法，但是这是最简单的方式了，你并不需要考虑多线程带来的生成单例对象的情况。
+
+接下来在sharedInstance方法之后添加以下方法：
+
+<pre lang="objc">
+- (BOOL)isGameCenterAvailable {
+    // check for presence of GKLocalPlayer API
+    Class gcClass = (NSClassFromString(@"GKLocalPlayer"));
+    
+    // check if the device is running iOS 4.1 or later
+    NSString *reqSysVer = @"4.1";
+    NSString *currSysVer = [[UIDevice currentDevice] systemVersion];
+    BOOL osVersionSupported = ([currSysVer compare:reqSysVer     
+      options:NSNumericSearch] != NSOrderedAscending);
+    
+    return (gcClass && osVersionSupported);
+}
+</pre>
+
+此方法完全来源于Apple的Game Kit Programming Guide。这是检查Game Kit在设备上是否可用的标准方法。
+
+在使用Game Kit之前要确保其可用，此app也可以运行在iOS 4.0或更早的版本，只是没有Game Center联网功能。
+
+然后在isGameCenterAvailable方法之后添加以下内容：
+
+<pre lang="objc">
+
+- (id)init {
+    if ((self = [super init])) {
+        gameCenterAvailable = [self isGameCenterAvailable];
+        if (gameCenterAvailable) {
+            NSNotificationCenter *nc = 
+            [NSNotificationCenter defaultCenter];
+            [nc addObserver:self 
+              selector:@selector(authenticationChanged) 
+              name:GKPlayerAuthenticationDidChangeNotificationName 
+              object:nil];
+        }
+    }
+    return self;
+}
+
+- (void)authenticationChanged {    
+    
+    if ([GKLocalPlayer localPlayer].isAuthenticated && 
+      !userAuthenticated) {
+        NSLog(@"Authentication changed: player authenticated.");
+        userAuthenticated = TRUE;           
+    } else if (![GKLocalPlayer localPlayer].isAuthenticated && 
+      userAuthenticated) {
+        NSLog(@"Authentication changed: player not authenticated");
+        userAuthenticated = FALSE;
+    }
+    
+}
+</pre>
+
+init方法检查Game Center是否可用，如果可用则注册一个“authentication changed”通知。注册此通知对于验证玩家很重要，这样玩家在成功验证后就能调用此注册回调。
+
+authenticationChanged回调此时还非常简单。它检查改变是否源于玩家登录或登出了，并更新一个状态变量。
+
+注意，在实际中，有可能这个回调因为登录或登出被连续调用好几次，所以为了确保userAuthenticated变量和当前状态是不同的，我们只当和上次有不同值时再修改变量的值。
+
+最后，在authenticationChanged方法之后添加验证本地玩家的方法：
+
+<pre lang="objc">
+#pragma mark User functions
+
+- (void)authenticateLocalUser { 
+    
+    if (!gameCenterAvailable) return;
+    
+    NSLog(@"Authenticating local user...");
+    if ([GKLocalPlayer localPlayer].authenticated == NO) {     
+        [[GKLocalPlayer localPlayer] 
+            authenticateWithCompletionHandler:nil];        
+    } else {
+        NSLog(@"Already authenticated!");
+    }
+}
+</pre>
+
+此方法调用了之前提到过的authenticateWithCompletionHandler告知Game Kit验证玩家。注意它并不需要一个有效的completion handler作为参数，因为你已经注册了“authentication changed”通知了。
+
+OK - GCTurnBasedMatchHelper目前已经包含了验证玩家最核心的代码了，完全可以一试了！切换到AppDelegate.m并做如下修改：
+
+<pre lang="objc">
+// At the top of the file
+#import "GCTurnBasedMatchHelper.h"
+ 
+// At the end of applicationDidFinishLaunching, right before 
+// the return YES
+[[GCTurnBasedMatchHelper sharedInstance] authenticateLocalUser];
+</pre>
+
+这句创建了单例（同时也在初始化的过程中注册了“authentication changed”回调），然后调用authenticateLocalUser方法。
+
+通常，你需要手动添加Game Kit framework到你的项目中，但是我已经在Build Phases\Link Binary with Libraries部分中为你添加好了。
+
+就是它了！编译并运行工程，如果你在游戏开始时登入了Game Center，就会看到如下所示的内容：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Welcome-Back.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Welcome-Back.png" alt="Welcome Back from Game Center" title="Welcome Back from Game Center" width="343" height="486" class="alignnone size-full wp-image-5486" /></a>
+
+<h2>Turn-Based 游戏基础</h2>
+
+现在我们已经成功登入了Game Center，这是个不错的开始。接下来，我们要讨论有关本篇教学的核心内容：Turn-Based Gaming。
+
+在一个turn-based游戏中，你并不需要和你的对手同时比赛（当然你也可以这样做）。举例来说，你可以在你的朋友酣睡时完成你的回合，然后当他们醒来后就会完成他们的回合，这时也许你正在洗澡，诸如此等情况。一个玩家可以在同一时间处在很多场异步的游戏之中。
+
+可以把这个过程想象成接力比赛中的棒子。在同一时刻只有一个运动员可以拿着棒子。当棒子被传递后，下一个运动员需要知道有关这场比赛的信息。
+
+想要更深入的了解这一过程，让我们来详细看看有关Turn-Based Gaming的类。
+
+<em>GKTurnBasedMatch</em>
+
+这个类存储着一场独立比赛的信息，比如：
+
+<ul>
+<li><em>creationDate</em>: 比赛被创建时的日期。
+<li><em>currentParticipant</em>:  当前拿着棒子的玩家。稍后会详细说明。</li>
+<li><em>matchID</em>: 一个唯一的NSString，用来表示比赛。一般这个都很长而且难以读懂。</li>
+<li><em>message</em>: 一个用来在GKTurnBasedMatchmakerViewController中唯一标识一场比赛的NSString。你可以将其设置为任意你想要的值。</li>
+<li><em>participants</em>: 一个保存着比赛中所有玩家的NSArray（也包括那些已经离开的）。</li>
+<li><em>status</em>: 当前比赛的状态，类型为GKTurnBasedMatchStatus。值包括类似Open，Ended，Matching，等等。</li>
+</ul>
+
+<em>GKTurnBasedParticipant</em>
+
+这个类存储着每个每个单独玩家的信息，比如：
+
+<ul>
+<li><em>playerID</em>: 一个玩家唯一的切不变的NSString。这和玩家在Game Center中的昵称不一样，它不易读，所以你并不应该显示它。</li>
+<li><em>lastTurnDate</em>: 一个记录上一个回合时间的NSDate。在有玩家开始回合前，它都是null。</li>
+<li><em>matchOutcome</em>: 比赛的结果，类型为GKTurnBasedMatchOutcome。包含值如Won，Lost，Tied（平局），3rd等。
+<li><em>status</em>: 玩家当前的状态，类型为GKTurnBasedParticipantStatus。包含值如Invited，Declined，Active，Done等。</li>
+</ul>
+
+<em>GKTurnBasedMatchmakerViewController</em>
+
+这是一个由Apple写的用来匹配turn-based游戏比赛的标准界面。它允许玩家：
+
+<ul>
+<li><em>创建比赛</em>.  你可以使用此view controller来创建比赛，既可以通过自动匹配也可以通过邀请。如果你创建了新的比赛，你将会开始此局比赛的第一个回合（即便系统还没有为你找到合适的玩家）。当系统为你匹配到了合适的玩家时，你会再次收到一个通知。注意，目前除了使用这个controller来创建比赛以外，还没有一种编程方式可以用来创建比赛。
+<li><em>切换比赛</em>.  之前我提到过，你可以同时进行好几个turn-based游戏。你可以使用这个view controller在你进行的游戏间切换。即使还不是你的回合或者游戏已经结束了，你也可以进行笔操作，同时你也可以在此观察游戏当前的状态。</li>
+<li><em>离开比赛</em>.  最后，你可以使用此view controller退出你不想再继续的游戏。</li>
+</ul>
+
+<em>GKMatchRequest</em>
+
+你使用它来初始化一个GKTurnBasedMatchmakerViewController，和创建一个普通的实时Game Center多人游戏类似。
+
+创建GKMatchRequest需要指定最小和最大玩家数量。你也可以基于它的其他属性（位置，水平，自定义群组等）来筛选玩家。
+
+<em>GKTurnBasedMatchmakerViewControllerDelegate</em>
+
+创建GKTurnBasedMatchmakerViewController时，你可以为其指定一个delegate。在比如取消、因为错误失败等等事件发生时通过回调通知你。
+
+<em>GKTurnBasedEventHandler</em>
+
+最后一个，这个单例类有一个GKTurnBasedEventHandlerDelegate类型的delegate。它可以在比赛回合从一个玩家到另一个玩家时，或是我们被好友邀请进去一个比赛，或者比赛结束时通知我们。
+
+<h2>由Apple提供的Turn Based Match View Controller</h2>
+
+学习turn-based游戏最有效的就是创建一个！正如之前我们讨论过的，我们可以使用由Apple提供的GKTurnBasedMatchmakerViewController，所以让我们在屏幕中添加一个按钮用来激活它。
+
+把gameCenterButton.png从resources添加到你的项目中，并按照下图所示在ViewController.xib中添加新按钮：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Adding-the-present-method.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Adding-the-present-method-500x333.png" alt="Adding the present method" title="Adding the present method" width="500" height="333" class="align none size-large wp-image-5496" /></a>
+
+添加完成后，在Attributes Inspector中将其type设置为Custom，Image设置为gameCenterButton.png。你可以使用command equals（等号）来使按钮自动适应图片大小。
+
+然后确保Assistant Editor是显示状态并使其显示ViewController.h，按住control把按钮从左侧拖拽到右侧的@interface块儿。设置Connection type为Action，将其命名为presentGCTurnViewController，然后点击Connect。
+
+<em>注意</em>: 尽管我在这篇教学中使用Game Center图标作为按钮图片，但是你并不应该在你的app中使用Game Center图标。这种方式并不被Apple提倡，可能导致app审核失败。他们给出的理由是Game Center不光包括这个view controller，也包括诸如leaderboards（排行榜），achievements（成就），view controllers（turn based 和 实时的）。如果使用这个按钮可能导致用户体验不一致。所以在你的app中，应该使用其他类型的图标。
+
+我们并不想在我们的ViewController类中做显示GKTurnBasedMatchmakerViewController的繁重工作。这里我们让GCTurnBasedMatchHelper来处理这些。这样的好处是可以把Game Center的代码分离开组成将来项目中可重用的模块儿。
+
+打开GCTurnBasedMatchHelper.h并加入一个新的成员变量和方法：
+
+<pre lang="objc">
+// New instance variable
+UIViewController *presentingViewController;
+
+// New method
+- (void)findMatchWithMinPlayers:(int)minPlayers 
+  maxPlayers:(int)maxPlayers 
+  viewController:(UIViewController *)viewController;
+</pre>
+
+这里我们创建了一个新的变量来保存用来显示GKTurnBasedMatchmakerViewController的view controller，还有一个通过指定玩家数来寻找比赛的方法。
+
+接下来切换到GCTurnBasedMatchHelper.m并在authenticateLocalUser方法之后加入添加如下方法：
+
+<pre lang="objc">
+- (void)findMatchWithMinPlayers:(int)minPlayers 
+  maxPlayers:(int)maxPlayers 
+  viewController:(UIViewController *)viewController {
+    if (!gameCenterAvailable) return;               
+    
+    presentingViewController = viewController;
+    
+    GKMatchRequest *request = [[GKMatchRequest alloc] init]; 
+    request.minPlayers = minPlayers;     
+    request.maxPlayers = maxPlayers;
+    
+    GKTurnBasedMatchmakerViewController *mmvc = 
+      [[GKTurnBasedMatchmakerViewController alloc] 
+        initWithMatchRequest:request];    
+    mmvc.turnBasedMatchmakerDelegate = self;
+    mmvc.showExistingMatches = YES;
+    
+    [presentingViewController presentModalViewController:mmvc 
+      animated:YES];
+}
+</pre>
+
+首先检查gameCenterAvailable的状态。如果game center没有连接上，我们就不做任何事情。
+
+如果连接上了，就创建一个GKMatchRequest对象。这个对象和game center多人游戏中所用的是一致的。我们为请求设置最小玩家和最大玩家数。设置完成后，它会控制GKTurnBasedViewController，多于或少于规定数量的玩家是不允许的。
+
+我们的SpinningYarn最多允许12个玩家同时参与。因为游戏不是实时的，turn-based类型游戏和实时游戏相比，需要更少的数据量，占用更少的带宽，所以游戏能够允许更多的玩家参与。对于实时多人游戏，4个玩家是最大数量了，但对于turn-based游戏，最大则允许16个！
+ 
+紧接着我们创建了一个GKTurnBasedMatchmakerViewController，把GKMatchRequest作为参数传入。同时，我们将其delegate设置为它self (GCTurnBasedMatchHelper)。目前这里有一个错误，很快我们会修复它。
+
+然后我们把showExistingMatches属性设为YES。这个属性控制着呈献给玩家的内容。如果它为YES，那么我们将会看到所有我们正在参与的比赛。这同时包括了处在玩家当前回合的比赛、其他玩家回合的比赛，以及已经结束的比赛。
+
+在右上角有一个“+”按钮，它可以用来新建游戏。点击它会弹出一个最少玩家数的匹配界面，我们可以持续添加玩家一直到最大玩家数。每一个位置都可以邀请指定的玩家加入，或者使用自动匹配获得。如果我们把showExistingMatches属性设为NO，那么这个界面只会显示新建游戏按钮。
+
+差不多完成了，我们只需要调用这个新方法即可。打开ViewController.h并且导入helper类的头文件：
+
+<pre lang="objc">
+#import "GCTurnBasedMatchHelper.h"
+</pre>
+
+然后切换到ViewController.m并如下实现presentGCTurnViewController方法：
+
+<pre lang="objc">
+- (IBAction)presentGCTurnViewController:(id)sender {
+    [[GCTurnBasedMatchHelper sharedInstance] 
+      findMatchWithMinPlayers:2 maxPlayers:12 viewController:self];
+}
+</pre>
+
+编译并运行，点击game center的按钮，你会看到GKTurnBasedMatchmakerViewController显示出来了：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/Game-Center-New-Match.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/Game-Center-New-Match.png" alt="Creating a new match in Game Center" title="Creating a new match in Game Center" width="331" height="499" class="alignnone size-full wp-image-5499" /></a>
+
+当然，如果你尝试着新建游戏或者做其他的事情，游戏会挂掉，因为我们还没实现任何的delegate方法呢！我们这就实现它。
+
+<h2>实现 Matchmaker View Controller Delegate</h2>
+
+第一步，先打开GCTurnBasedMatchHelper.h并对@interface做如下修改：
+
+<pre lang="objc">
+@interface GCTurnBasedMatchHelper : NSObject 
+  <GKTurnBasedMatchmakerViewControllerDelegate> {
+</pre>
+
+这里我们简单的将helper类实现matchmaker view controller的delegate。
+
+接下来，切换到GCTurnBasedMatchHelper.m并在文件末尾添加以下占位的代理方法：
+
+<pre lang="objc">
+#pragma mark GKTurnBasedMatchmakerViewControllerDelegate
+
+-(void)turnBasedMatchmakerViewController: 
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  didFindMatch:(GKTurnBasedMatch *)match {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    NSLog(@"did find match, %@", match);
+}
+
+-(void)turnBasedMatchmakerViewControllerWasCancelled: 
+  (GKTurnBasedMatchmakerViewController *)viewController {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    NSLog(@"has cancelled");
+}
+
+-(void)turnBasedMatchmakerViewController: 
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  didFailWithError:(NSError *)error {
+    [presentingViewController 
+      dismissModalViewControllerAnimated:YES];
+    NSLog(@"Error finding match: %@", error.localizedDescription);
+}
+
+-(void)turnBasedMatchmakerViewController: 
+  (GKTurnBasedMatchmakerViewController *)viewController 
+  playerQuitForMatch:(GKTurnBasedMatch *)match {
+    NSLog(@"playerquitforMatch, %@, %@", 
+      match, match.currentParticipant);
+}
+
+@end
+</pre>
+
+第一个方法（didFindMatch）当玩家从比赛列表中选择了一个比赛后被调用。选择的比赛的状态可以正处出玩家的回合，或是处在其他玩家的回合，或者已经结束。
+
+第二个方法（wasCancelled）当cancel按钮被点击后被调用。
+
+第三个方法（didFail）当有错误发生时被调用。这个事件有可能是因为丢失网络连接或者其他一系列原因导致的。
+
+最后一个方法（playerQuitForMatch）当玩家进入比赛然后退出比赛（在他的回合中）时被调用。当玩家进入激活状态的比赛后会显示出一个quit（退出）或者remove（移除）按钮。如果玩家还在他们自己回合时就退出比赛，他们需要负责处理比赛的事项，更新其状态，并将其传递给下一位玩家。如果玩家退出比赛时不这样做的话，这个比赛将不能进行下去！
+
+一个已经结束的比赛会保存在Apple的服务器上，并且可以被参与此比赛的玩家浏览。如果一个玩家remove一个比赛，它将从不会存在在玩家的比赛列表中。但是，因为这是多人参与的游戏，如果不是参与者都将其从自己的列表中删除的话，这个比赛始终会在Game Center的服务器上保存。
+
+目前，除了playerQuit方法外，其他方法都会移除view controller并打印一些信息。这是因为玩家在退出游戏时也许还想在这个界面做其他事情。
+
+编译并运行。使用自动匹配开始一个新游戏，你会得到如下的打印信息：
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/didfindmatch.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/didfindmatch-500x325.png" alt="Console showing turn based match found" title="Console showing turn based match found" width="500" height="325" class="alignnone size-large wp-image-5500" /></a>
+
+请注意当你新建比赛时这个view controller就消失了，即使它还没有找到一个玩家加入游戏！观察下log，你会发现其中一个GKTurnBasedParticipant（参与者）就是你自己（本地玩家），第二个玩家的id为null（系统还没有为你匹配到合适的玩家）。
+
+继续看看其他log信息。如果点击cancel按钮，或者退出一个正在进行的比赛，你会看到cancelled或player quit的信息。如果你断开你的网络后再视图开始一个比赛，你会看到失败信息。
+
+<a href="http://www.raywenderlich.com/wp-content/uploads/2011/10/playerquitformatch.png"><img src="http://www.raywenderlich.com/wp-content/uploads/2011/10/playerquitformatch-500x334.png" alt="Console showing player quit" title="Console showing player quit" width="500" height="334" class="alignnone size-large wp-image-5501" /></a>
+
+祝贺你，你已经在两台设备间创建了一个turn-based比赛了！
+
+深呼一口气！在下一篇教程中我们会完成好玩儿的部分，传递回合并完成我们的简单的turn-based游戏！
+
+<h2>合区何从？</h2>
+
+在<a href="/?p=5509">第二部分中</a>，我们会添加传递回合的代码，并最终得到一个简单的好玩儿的turn-based游戏！
+
+本篇教程是我们的新书<a href="/?page_id=5107">iOS 5 By Tutorials</a>的一部分。如果你喜欢这篇教程，可以购买此书，其中包括了另一个完整的章节来讲述turn-based游戏。
+
+如果有关于本篇教程和iOS5 turn-based游戏的任何疑问，可以参与下方的讨论区！
+
+<i>本篇教程是由iOS教程组成员<a href="/?page_id=9#jacobgundersen">Jacob Gundersen</a>发布的，Jacob是一位独立游戏开发者，经营着<a href="http://indieambitions.com/">Indie Ambitions</a>。请看看他最新的app <a href="http://itunes.apple.com/us/app/factor-samurai/id441919897?mt=8">Factor Samurai!</a></i>
